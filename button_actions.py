@@ -110,6 +110,7 @@ class ButtonFunctions:
         self.painter.draw_rectangle(temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color)
 
 
+            
         
     def add_new_template(self, img_path, img_size):
         """
@@ -124,10 +125,12 @@ class ButtonFunctions:
         selected_key = self.config_tool.name_to_key.get(selected_name, None) 
 
         if selected_key is None:
-            # If no dropdown option is selected, show an error message
-            self.config_tool.dropdown.configure(style="TCombobox")
-            messagebox.showerror("Selection Required", "Please select an option from the dropdown list.")
+            # If no dropdown option is selected, change the dropdown field background to red
+            self.config_tool.dropdown.config(foreground='black', background='red')
             return None
+
+        # Reset the dropdown style if everything is fine
+        self.config_tool.dropdown.config(foreground='black', background='white')
 
         # Retrieve the range from choices_dict using the selected key
         choices_dict = self.config_tool.choices_dict
@@ -161,8 +164,6 @@ class ButtonFunctions:
             json.dump(config_data, file, indent=2)
 
         return new_template_id
-        
-
 
 
 
@@ -190,7 +191,7 @@ class ButtonFunctions:
             thread.start()
 
 
-    def add_mode_feature_but_func_threaded(self, img_size, resize_percent_width, resize_percent_height, img_not_none, box_color):
+    def add_screen_feature_but_func_threaded(self, img_size, resize_percent_width, resize_percent_height, img_not_none, box_color):
         def add_mode_thread():
             # Check if the image path is valid
             if not self.img_path:
