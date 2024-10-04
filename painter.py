@@ -9,32 +9,24 @@ class Painter:
         self.last_rectangle = {}
         self.add_par_but_clicked = False
         self.add_feature_but_clicked = False
-        # Add resize factors with default value 1 (no scaling)
         self.resize_percent_width = 1
         self.resize_percent_height = 1
+        self.box_color = "#00FF00"  # Default color (green)
 
-    def activate_drawing(self, add_par_but_clicked=False, add_feature_but_clicked=False, resize_percent_width=1, resize_percent_height=1):
+    def activate_drawing(self, add_par_but_clicked=False, add_feature_but_clicked=False, resize_percent_width=1, resize_percent_height=1, box_color="#00FF00"):
         """
         Activates drawing mode, binds the necessary events to start drawing rectangles.
-        Also sets the resize percentages for scaling the coordinates.
+        Also sets the resize percentages for scaling the coordinates and the box color.
         """
         self.add_par_but_clicked = add_par_but_clicked
         self.add_feature_but_clicked = add_feature_but_clicked
         self.resize_percent_width = resize_percent_width
         self.resize_percent_height = resize_percent_height
+        self.box_color = box_color  # Set the color for the box
 
         self.canvas.bind('<Button-1>', self.start_drawing)
         self.canvas.bind('<B1-Motion>', self.update_rectangle)
         self.canvas.bind('<ButtonRelease-1>', self.finish_drawing)
-
-
-    def deactivate_drawing(self):
-        """
-        Deactivates drawing mode, unbinds the events to stop drawing.
-        """
-        self.canvas.unbind('<Button-1>')
-        self.canvas.unbind('<B1-Motion>')
-        self.canvas.unbind('<ButtonRelease-1>')
 
     def start_drawing(self, event):
         """
@@ -43,7 +35,7 @@ class Painter:
         self.drawing = True
         self.start_x = event.x
         self.start_y = event.y
-        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, outline="green", width=2)
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, outline=self.box_color, width=2)
 
     def update_rectangle(self, event):
         """
@@ -55,12 +47,13 @@ class Painter:
     def finish_drawing(self, event):
         """
         Finalizes the drawing process when the mouse button is released.
+        Asks for a name and displays it next to the rectangle.
         """
         self.drawing = False
         end_x = event.x
         end_y = event.y
         self.canvas.coords(self.rect, self.start_x, self.start_y, end_x, end_y)
-        
+
         # Scale coordinates back to the original image dimensions
         original_start_x = self.start_x / self.resize_percent_width
         original_start_y = self.start_y / self.resize_percent_height
@@ -82,7 +75,21 @@ class Painter:
                 "y2": original_end_y
             }
 
+            # Display the text next to the rectangle (top-right corner of the rectangle)
+            text_x = end_x + 5  # 5 pixels to the right of the rectangle
+            text_y = self.start_y  # Align with the top of the rectangle
+            self.canvas.create_text(text_x, text_y, text=name, anchor="nw", font=("Arial", 12), fill=self.box_color)
+
         self.deactivate_drawing()
+
+    def deactivate_drawing(self):
+        """
+        Deactivates drawing mode, unbinds the events to stop drawing.
+        """
+        self.canvas.unbind('<Button-1>')
+        self.canvas.unbind('<B1-Motion>')
+        self.canvas.unbind('<ButtonRelease-1>')
+
 
 
 

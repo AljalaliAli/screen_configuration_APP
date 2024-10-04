@@ -42,8 +42,8 @@ class ConfigurationTool:
         self.img_canvas = Canvas(self.img_container, bg='#4E4E6E', cursor="cross")
         self.img_canvas.pack(fill=BOTH, expand=1)
 
-        # Initialize ButtonFunctions with the image canvas
-        self.but_functions = ButtonFunctions(self.img_canvas, self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name)
+        # Pass self to ButtonFunctions (modified)
+        self.but_functions = ButtonFunctions(self.img_canvas, self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name, self)
 
         # Create the Sidebar (right side)
         self.side_bar = Frame(self.main_container, width=self.sidebar_width, bg='#000')
@@ -88,6 +88,20 @@ class ConfigurationTool:
         # Bind dropdown selection to a function
         self.dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
 
+    def update_dropdown(self, status_name):
+        """
+        Updates the dropdown list to display the given status name.
+        If the status name is empty, it will clear the dropdown.
+        """
+        print(f"[DEBUG] Called update_dropdown with status_name: {status_name}")  # Debug statement
+        if status_name:
+            self.dropdown.set(status_name)  # Set the dropdown to the status name
+            print(f"[DEBUG] Dropdown set to: {status_name}")  # Debug statement
+        else:
+            self.dropdown.set('')  # Clear the dropdown
+            print("[DEBUG] Dropdown cleared.")  # Debug statement
+
+
     def select_image(self):
         """
         Selects and loads an image to the canvas.
@@ -95,9 +109,7 @@ class ConfigurationTool:
         image_data = self.but_functions.browse_files()
         if image_data:
             self.load_image(image_data)
-            
 
- 
     def load_image(self, image_data):
         """
         Loads the selected image and sets it as the background of the canvas.
@@ -133,42 +145,45 @@ class ConfigurationTool:
                 self.resize_percent_width = canvas_width / original_width
                 self.resize_percent_height = canvas_height / original_height
 
-                # Draw rectangles (parameters and features) with scaling
+                # Draw parameters (green) and features (red) with scaling
                 self.but_functions.draw_parameters_and_features(img_id, self.resize_percent_width, self.resize_percent_height, param_color="#00ff00", feature_color="#ff0000")
 
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to display image: {e}")
 
-
-
     def add_parameter(self):
         """
         Adds a new parameter to the selected image.
+        Draws a green rectangle when clicked.
         """
         if hasattr(self, 'img'):
-            # Use the stored resize percentages
-            self.but_functions.add_par_but_func_threaded(resize_percent_width=self.resize_percent_width, 
-                                                        resize_percent_height=self.resize_percent_height, 
-                                                        img_not_none=True)
+            # Activate drawing with green color for parameters
+            self.but_functions.add_par_but_func_threaded(
+                resize_percent_width=self.resize_percent_width,
+                resize_percent_height=self.resize_percent_height,
+                img_not_none=True,
+                box_color="#00FF00"  # Green color for parameter box
+            )
         else:
             messagebox.showwarning("No Image", "Please load an image first.")
 
     def add_mode_feature(self):
         """
         Adds a new mode and feature to the selected image.
+        Draws a red rectangle when clicked.
         """
         if hasattr(self, 'img'):
             img_size = {"width": self.img.width(), "height": self.img.height()}
-            # Use the stored resize percentages
-            self.but_functions.add_mode_feature_but_func_threaded(img_path=None, 
-                                                                img_size=img_size,
-                                                                resize_percent_width=self.resize_percent_width, 
-                                                                resize_percent_height=self.resize_percent_height,
-                                                                img_not_none=True)
+            # Activate drawing with red color for modes and features
+            self.but_functions.add_mode_feature_but_func_threaded(
+                img_size=img_size,
+                resize_percent_width=self.resize_percent_width,
+                resize_percent_height=self.resize_percent_height,
+                img_not_none=True,
+                box_color="#FF0000"  # Red color for mode/feature box
+            )
         else:
             messagebox.showwarning("No Image", "Please load an image first.")
-
-
 
 
     def clear_canvas(self):
