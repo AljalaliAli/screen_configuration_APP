@@ -10,6 +10,9 @@ class ConfigurationTool:
         self.mde_config_file_name = mde_config_file_name
         self.templates_dir_name = templates_dir_name
         self.choices_dict = choices_dict
+        self.image_selected = False  # Track if an image is selected
+        self.blinking_active = False  # Initialize blinking state
+        self.current_template_id = None  # Store the template ID (temp_img_id)
 
         # Initialize the root window
         self.root = Tk()
@@ -39,7 +42,25 @@ class ConfigurationTool:
         self.blink_id = None  # Holds the after id for cancelling blinking
 
         self.create_ui(screen_width, screen_height)
-
+    
+    def get_current_template_id(self):
+        """
+        Retrieves the current template ID based on temp_img_id or dropdown selection.
+        """
+        if self.current_template_id:
+            print(f"[DEBUG] Retrieved stored template ID (temp_img_id): {self.current_template_id}")
+            return self.current_template_id
+        
+        # Fallback to using dropdown selection if no temp_img_id is available
+        selected_name = self.selected_option.get()  # Get the current dropdown selection
+        selected_key = self.name_to_key.get(selected_name, None)  # Map name to key (template ID)
+        
+        if selected_key is not None:
+            print(f"[DEBUG] Retrieved template ID from dropdown: {selected_key}")
+            return selected_key
+        else:
+            print("[ERROR] No valid template ID found from the dropdown or temp_img_id.")
+            return None
     def create_ui(self, screen_width, screen_height):
         # Main container that holds both the image and the sidebar
         self.main_container = Frame(self.root)
@@ -133,37 +154,30 @@ class ConfigurationTool:
     def update_dropdown(self, status_name):
         """
         Updates the dropdown list to display the given status name.
-        If the status name is None, empty, or cleared, and an image is selected,
-        it will make the dropdown frame background blink red every 0.5 seconds.
+        If the status name is None or empty, it will clear the dropdown and set the background to red.
+        If a status is provided, it will stop blinking and set the dropdown to the status.
         """
-        print(f"[DEBUG] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")
+        print(f"[DEBUG] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
 
         if status_name:
-            print("[DEBUG] Status name provided. Attempting to set Combobox value and stop blinking.")
-            # Stop blinking if active
-            if self.blinking:
-                print("[DEBUG] Blinking active. Stopping blinking.")
-                self.stop_blinking()
+            # Stop blinking if active and set the dropdown to the status name
+            self.stop_blinking()
+            self.dropdown.configure(state='normal')  # Change to 'normal' to update
             self.dropdown.set(status_name)  # Set the dropdown to the status name
-            print(f"[DEBUG] Combobox set to: '{status_name}'")
-            # Ensure the frame background is normal
-            self.dropdown_frame.configure(bg='#000')
-            print("[DEBUG] Dropdown frame background set to normal ('#000').")
+            self.dropdown.configure(style='Custom.TCombobox', state='readonly')  # Reset to normal style and 'readonly' state
+            print(f"[DEBUG] Dropdown set to: {status_name}. Blinking stopped if it was active.")  # Debug statement
         else:
-            print("[DEBUG] No status name provided. Clearing Combobox and initiating blinking if image is selected.")
+            # No status found, clear the dropdown and initiate blinking if an image is selected
+            self.dropdown.configure(state='normal')  # Change to 'normal' to update
             self.dropdown.set('')  # Clear the dropdown
+            print(f"[DEBUG] No status name provided. Clearing Combobox and initiating blinking if image is selected.")
+
             if self.image_selected:
-                # Start blinking
-                if not self.blinking:
-                    print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
-                    self.start_blinking()
-                else:
-                    print("[DEBUG] Image is selected but blinking is already active.")
+                print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
+                if not self.blinking_active:
+                    self.start_blinking()  # Start the blinking effect if it’s not already active
             else:
-                # No image selected yet, do not do anything
-                self.dropdown_frame.configure(bg='#000')
                 print("[DEBUG] No image selected. Dropdown frame remains normal.")
-            print("[DEBUG] Dropdown cleared.")
 
     def start_blinking(self):
         if not self.blinking:
@@ -340,6 +354,15 @@ class ConfigurationTool:
             # Start blinking if image is selected
             if self.image_selected and not self.blinking:
                 self.start_blinking()
+   
+    def reload_config(self):
+        """
+        Reloads the config.json file after adding a new screen feature or parameter.
+        """
+        print("[DEBUG] Reloading config.json...")
+        # Reinitialize ButtonFunctions to reload the configuration file
+        self.but_functions = ButtonFunctions(self.img_canvas, self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name, self)
+        print("[DEBUG] config.json reloaded.")
 
     def mainloop(self):
         """
