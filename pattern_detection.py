@@ -1,78 +1,152 @@
-from skimage.metrics import structural_similarity as ssim
-import cv2
-import numpy as np
+import json
 import os
+from image_processing import *
+
+
+
 class ImageMatcher:
-    def __init__(self, templates_dir):
-        self.templates_dir = templates_dir
-        self.templates = {}  # Initialize an empty dictionary to hold the templates
-        self.load_templates()  # Load the templates when initializing the class
+    """
+    Class for matching input images with templates and determining the best match.
+    """
+    def __init__(self, configFiles_dir, mde_config_file_name, templates_dir_name):     
+        # Ensure the MDE config directory exists
+        if not os.path.exists(configFiles_dir):
+            os.makedirs(configFiles_dir)
 
-    def load_templates(self):
-        """
-        Loads all template images from the templates directory into memory.
-        """
+        # Construct the path to the MDE config file
+        self.mde_config_file_path = os.path.join(configFiles_dir, mde_config_file_name)
+
+        # Load MDE config data if the config file exists
+        if os.path.exists(self.mde_config_file_path):
+            self.mde_config_data = self.load_mde_config_data(self.mde_config_file_path)
+        else:
+            self.mde_config_data = {}  # Handle case where config file doesn't exist
+        # Ensure the templates directory exists within the MDE config directory
+        self.templates_dir =os.path.join(configFiles_dir, templates_dir_name)
+        if not os.path.exists(self.templates_dir):
+            os.makedirs(self.templates_dir)
+
+       
+     
+    def load_mde_config_data(self, json_file_path):
         try:
-            for template_file in os.listdir(self.templates_dir):
-                if template_file.endswith((".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")):
-                    template_path = os.path.join(self.templates_dir, template_file)
-                    template_img = cv2.imread(template_path)
-                    if template_img is not None:
-                        # Extract an ID from the file name (assuming the file name has the template ID)
-                        template_id = os.path.splitext(template_file)[0].split('_')[-1]
-                        self.templates[template_id] = template_img
-                        print(f"[DEBUG] Loaded template {template_file} with ID {template_id}")
-                    else:
-                        print(f"[DEBUG] Failed to load template image: {template_file}")
+            with open(json_file_path, 'r') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            print(f"File not found: {json_file_path}")
+            return {}
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON in file: {json_file_path}")
+            print(e)
+            return {}
+
+ 
+    def match_images(self, img, min_match_val=0.9): 
+        """
+        Match input image against templates specified in the MDE configuration data.
+
+        Parameters:
+        - img (ndarray): Input image to be matched against templates.
+        - min_match_val (float): Minimum match value threshold for considering a match.
+
+        Returns:
+        - Tuple: (match_values, temp_img_id) if a matching template is found,
+                 (-1, -1) if no matching template is found.
+        """
+
+       #loop throw all image templates
+        for temp_img_id, temp_img_data in  self.mde_config_data["images"].items():     
+            temp_img_path = os.path.join(self.templates_dir, temp_img_data["path"])   
+            #print(f"temp_img_path  .........................{temp_img_path} ")
+            #print('current template image size: ', temp_img_data["size"])
+            match_values=[]
+            features_count=0
+            match_count=0
+            # loop throw all feature in the current template image
+            for merkma_id, feature in temp_img_data["features"].items(): 
+                features_count +=1
+                position = feature["position"]
+                x1, x2, y1, y2=int(position["x1"]), int(position["x2"]),int( position["y1"]),int(position["y2"])
+                temp_img= cv2.imread(temp_img_path)
+
+                #resize the image to make sure ...
+                img_resized = resize_image_cv2(img,temp_img_data["size"])
+                cropped_img = img_resized[y1:y2, x1:x2] 
+                cropped_temp = temp_img[y1:y2, x1:x2] 
+
+                cropped_temp_gray =  convert_to_grayscale(cropped_temp)
+                imge_cropped_gray =  convert_to_grayscale(cropped_img)
+    
+                match_val = self.compute_match_value(imge_cropped_gray, cropped_temp_gray )
+               
+                match_values.append(match_val)
+                if match_val>= min_match_val:
+                    match_count +=1
+            if match_count == features_count:
+               # print('*********************************************')
+                #print('current match_values')
+                #print(f"match_values ={match_values}                temp_img_id = {temp_img_id}     ")
+                #print('*********************************************')
+                    
+                return  match_values,temp_img_id
+        return -1,-1
+   
+    
+    def compute_match_value(self, img_gray, template):
+        """
+        Compute the match value between an input image and a template.
+
+        Parameters:
+        - img_gray (ndarray): Grayscale input image.
+        - template (ndarray): Template image.
+
+        Returns:
+        - match_val (float): Match value.
+        """
+
+        try:
+            result = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+            #print(f" result[0][0] = { result[0][0]}")
+       
+            _, match_val, _, _ = cv2.minMaxLoc(result)
+        
+            return match_val
+
+        except cv2.error as cv2_error:
+            print(f"OpenCV Error: {cv2_error}")
+            return None
+
         except Exception as e:
-            print(f"[DEBUG] Error loading templates: {e}")
-
-    def compare_images(self, img1, img2):
-        """
-        Compares two images using Structural Similarity Index (SSIM) to determine if they match.
-        """
-        # Convert images to grayscale for comparison
-        gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-        gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-        # Resize images to the same dimensions if necessary
-        if gray1.shape != gray2.shape:
-            gray2 = cv2.resize(gray2, (gray1.shape[1], gray1.shape[0]))
-
-        # Calculate SSIM between the two images
-        score, _ = ssim(gray1, gray2, full=True)
-        print(f"[DEBUG] SSIM score: {score}")
-
-        # Define a threshold for similarity (1.0 means identical)
-        threshold = 0.9
-        return score >= threshold
+            print(f"Error: {e}")
+            return None
 
 
-    def match_images(self, img):
-        """
-        Matches the given image with the loaded templates and returns match_values and temp_img_id.
-        """
-        if not self.templates:
-            print("[DEBUG] No templates loaded for matching.")
-            return None, -1
 
-        match_values = {}  # Dictionary to store match scores for each template
+def main():
+    # Define paths and parameters
+    configFiles_dir = 'ConfigFiles'
+    mde_config_file_name = 'mde_config.json'
+    templates_dir_name = 'templates'
 
-        # Loop over the templates and perform matching
-        for template_id, template_img in self.templates.items():
-            print(f"[DEBUG] Comparing with Template ID {template_id}")
+    # Load the input image for matching
+    input_image_path = r"C:\Users\nizar\OneDrive\Desktop\Convert_to_standard_imgs\MDE_images\2024\2\28\ID0004_MID0004_20240228_114752.tiff"
+    input_img = cv2.imread(input_image_path)
 
-            # Use the compare_images method to get the similarity score
-            result = self.compare_images(img, template_img)
-            print(f"[DEBUG] Matching with Template ID {template_id}: Similarity Score = {result}")
-            
-            # Store the match score for each template
-            match_values[template_id] = result
+    # Initialize the ImageMatcher
+    matcher = ImageMatcher(configFiles_dir, mde_config_file_name, templates_dir_name)
 
-        # Find the template with the highest similarity score
-        best_match_id = max(match_values, key=match_values.get)
-        best_match_value = match_values[best_match_id]
+    # Perform image matching
+    match_values, temp_img_id = matcher.match_images(input_img)
 
-        # Return the highest similarity score and corresponding template ID
-        print(f"[DEBUG] Best match found with Template ID: {best_match_id}, Score: {best_match_value}")
-        return match_values, best_match_id
+    # Process the matching results
+    if temp_img_id != -1:
+        print(f"Best template match found: {temp_img_id}")
+        print(f"Match values: {match_values}")
+    else:
+        print("No matching template found.")
+
+if __name__ == "__main__":
+    main()
+
+
+

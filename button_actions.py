@@ -21,7 +21,7 @@ class ButtonFunctions:
         self.ensure_directories_and_config(mde_config_dir, self.templates_dir, self.mde_config_file_path)
 
         # Create ImageMatcher object for image comparison
-        self.matcher = ImageMatcher(self.templates_dir)
+        self.matcher = ImageMatcher(mde_config_dir, mde_config_file_name, templates_dir_name)
 
         # Initialize the painter class
         self.painter = Painter(img_canvas, self.mde_config_file_path)
@@ -63,22 +63,22 @@ class ButtonFunctions:
                     messagebox.showerror("Error", "Failed to load image. Please select a valid image.")
                     return None
 
-                print(f"[DEBUG] Loaded Image Properties: Shape = {img_cv2.shape}, Dtype = {img_cv2.dtype}")
+               # print("[DEBUG]Loaded Image Properties: Shape = {img_cv2.shape}, Dtype = {img_cv2.dtype}")
 
                 # Compare the selected image with the templates
                 match_result = self.matcher.match_images(img_cv2)
                 temp_img_id = int(match_result[1])
 
-                print(f"[DEBUG] Template matching result: {match_result}")
+               # print("[DEBUG]Template matching result: {match_result}")
 
                 if temp_img_id != -1:
-                    print(f"[DEBUG] Template ID found: {temp_img_id}")
+                   # print("[DEBUG]Template ID found: {temp_img_id}")
                     status_info = get_machine_status_from_temp_img_id(temp_img_id)
-                    print(f"[DEBUG] Status Info Retrieved: {status_info}")
+                   # print("[DEBUG]Status Info Retrieved: {status_info}")
 
                     if status_info:
                         status_name, _ = status_info
-                        print(f"[DEBUG] Updating dropdown with status: {status_name}")
+                       # print("[DEBUG]Updating dropdown with status: {status_name}")
                         self.config_tool.update_dropdown(status_name)  # Update dropdown with matched status
                     else:
                         print("[DEBUG] No valid status found. Clearing dropdown.")
@@ -188,7 +188,7 @@ class ButtonFunctions:
 
             if current_template_id is not None:
                 self.add_parameter_to_config(current_template_id, par_name, par_pos)
-                print(f"[DEBUG] Parameter '{par_name}' added to template ID: {current_template_id}")
+               # print("[DEBUG]Parameter '{par_name}' added to template ID: {current_template_id}")
             else:
                 print("[ERROR] No valid template ID found for adding parameter.")
 
@@ -225,11 +225,11 @@ class ButtonFunctions:
 
             if template_id is not None:
                 self.add_feature_to_config(template_id, feature_name, feature_pos)
-                print(f"[DEBUG] Feature added to config.json with template ID: {template_id}")
+               # print("[DEBUG]Feature added to config.json with template ID: {template_id}")
 
                 # Store the template_id (temp_img_id) in the config_tool for later use
                 self.config_tool.current_template_id = template_id
-                print(f"[DEBUG] Stored current template ID (temp_img_id): {template_id}")
+               # print("[DEBUG]Stored current template ID (temp_img_id): {template_id}")
 
                 # Refresh/reload the config.json file after adding the feature
                 self.config_tool.reload_config()
@@ -256,12 +256,12 @@ class ButtonFunctions:
         # Check if the template ID exists in the config_data
         if template_id not in config_data["images"]:
             print(f"[ERROR] Template ID '{template_id}' not found in config.json.")
-            print(f"[DEBUG] Current config_data: {json.dumps(config_data, indent=2)}")
+           # print("[DEBUG]Current config_data: {json.dumps(config_data, indent=2)}")
             return
 
         # Ensure the 'parameters' key exists for the current template
         if "parameters" not in config_data["images"][template_id]:
-            print(f"[DEBUG] Initializing 'parameters' for template ID: {template_id}")
+           # print("[DEBUG]Initializing 'parameters' for template ID: {template_id}")
             config_data["images"][template_id]["parameters"] = {}
 
         # Add the parameter to the selected template
@@ -271,15 +271,15 @@ class ButtonFunctions:
             "position": par_pos  # Save the original image size coordinates
         }
 
-        print(f"[DEBUG] Preparing to write updated config_data to {self.mde_config_file_path}")
-        print(f"[DEBUG] Updated config_data before saving: {json.dumps(config_data, indent=2)}")
+       # print("[DEBUG]Preparing to write updated config_data to {self.mde_config_file_path}")
+       # print("[DEBUG]Updated config_data before saving: {json.dumps(config_data, indent=2)}")
 
         # Save the updated config.json
         with open(self.mde_config_file_path, 'w') as file:
             json.dump(config_data, file, indent=2)
             file.flush()  # Ensure the data is flushed to disk immediately
 
-        print(f"[DEBUG] Parameter '{par_name}' added and config.json updated successfully.")
+       # print("[DEBUG]Parameter '{par_name}' added and config.json updated successfully.")
 
 
 
