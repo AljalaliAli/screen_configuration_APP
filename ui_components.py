@@ -40,9 +40,11 @@ class ConfigurationTool:
         self.image_selected = False  # Indicates whether an image is selected
         self.blink_id = None  # Holds the after id for cancelling blinking
 
+        self.resized_img= None
+        self.original_image= None
         self.create_ui(screen_width, screen_height)
     
-    def get_current_template_id(self):
+    def get_current_template_id(self): 
         """
         Retrieves the current template ID based on temp_img_id or dropdown selection.
         """
@@ -156,7 +158,7 @@ class ConfigurationTool:
         If the status name is None or empty, it will clear the dropdown and set the background to red.
         If a status is provided, it will stop blinking and set the dropdown to the status.
         """
-        print(f"[DEBUG..............update_dropdown (f)......] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
+        #print(f"[DEBUG..............update_dropdown (f)......] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
 
         if status_name:
             # Stop blinking if active and set the dropdown to the status name
@@ -164,12 +166,12 @@ class ConfigurationTool:
             self.dropdown.configure(state='normal')  # Change to 'normal' to update
             self.dropdown.set(status_name)  # Set the dropdown to the status name
             self.dropdown.configure(style='Custom.TCombobox', state='readonly')  # Reset to normal style and 'readonly' state
-            print(f"[DEBUG..............update_dropdown (f)......] Dropdown set to: {status_name}. Blinking stopped if it was active.")  # Debug statement
+            #print(f"[DEBUG..............update_dropdown (f)......] Dropdown set to: {status_name}. Blinking stopped if it was active.")  # Debug statement
         else:
             # No status found, clear the dropdown and initiate blinking if an image is selected
             self.dropdown.configure(state='normal')  # Change to 'normal' to update
             self.dropdown.set('')  # Clear the dropdown
-            print(f"[DEBUG..............update_dropdown (f)......] No status name provided. Clearing Combobox and initiating blinking if image is selected.")
+            #print(f"[DEBUG..............update_dropdown (f)......] No status name provided. Clearing Combobox and initiating blinking if image is selected.")
 
             if self.image_selected:
                 print("[DEBUG..............update_dropdown (f)......] Image is selected and blinking is not active. Starting blinking.")
@@ -215,11 +217,12 @@ class ConfigurationTool:
             # Schedule the next blink
             self.blink_id = self.root.after(500, self.blink_frame)
            # print("[DEBUG] Scheduled next blink in 500ms.")
-
+   
     def select_image(self):
         """
         Selects and loads an image to the canvas.
         """
+      
        # print("[DEBUG] 'Select Image' button clicked.")
         image_data = self.but_functions.browse_files()
         if image_data:
@@ -234,6 +237,8 @@ class ConfigurationTool:
         """
         Loads the selected image and sets it as the background of the canvas.
         """
+        # befor loading the image clear the cavus to be sure that there is no rectangles or image
+        self.clear_canvas()
         if image_data:
             img_path, img_id = image_data
             # print("[DEBUG] Loading image from path: {img_path}, ID: {img_id}")
@@ -277,7 +282,6 @@ class ConfigurationTool:
                 # Draw parameters (green) and features (red) with scaling
                # print("[DEBUG] Drawing parameters and features on the image.")
                 self.but_functions.draw_parameters_and_features(
-                    img_id,
                     self.resize_percent_width,
                     self.resize_percent_height,
                     param_color="#00ff00",
@@ -293,7 +297,7 @@ class ConfigurationTool:
         Draws a green rectangle when clicked.
         """
        # print("[DEBUG] 'Add New Parameter' button clicked.")
-        if hasattr(self, 'img'):
+        if hasattr(self, 'original_image'):
             # Activate drawing with green color for parameters
            # print("[DEBUG] Image is loaded. Proceeding to add parameter.")
             self.but_functions.add_par_but_func_threaded(

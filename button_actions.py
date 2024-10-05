@@ -21,6 +21,7 @@ class ButtonFunctions:
         self.ensure_directories_and_config(mde_config_dir, self.templates_dir, self.mde_config_file_path)
 
         # Create ImageMatcher object for image comparison
+        self.temp_img_id=None
         self.matcher = ImageMatcher(mde_config_dir, mde_config_file_name, templates_dir_name)
 
         # Initialize the painter class
@@ -48,7 +49,6 @@ class ButtonFunctions:
                 # Create an empty JSON structure
                 json.dump({"images": {}}, file, indent=2)
 
-
     def browse_files(self):
         file_path = filedialog.askopenfilename(
             filetypes=[("Image Files", "*.bmp *.jpg *.jpeg *.png *.tif *.tiff"), ("All Files", "*.*")]
@@ -67,13 +67,13 @@ class ButtonFunctions:
 
                 # Compare the selected image with the templates
                 match_result = self.matcher.match_images(img_cv2)
-                temp_img_id = int(match_result[1])
+                self.temp_img_id = int(match_result[1])
 
                # print("[DEBUG]Template matching result: {match_result}")
 
-                if temp_img_id != -1:
-                   # print("[DEBUG]Template ID found: {temp_img_id}")
-                    status_info = get_machine_status_from_temp_img_id(temp_img_id)
+                if self.temp_img_id != -1:
+                   # print("[DEBUG]Template ID found: {self.temp_img_id}")
+                    status_info = get_machine_status_from_temp_img_id(self.temp_img_id)
                    # print("[DEBUG]Status Info Retrieved: {status_info}")
 
                     if status_info:
@@ -81,30 +81,25 @@ class ButtonFunctions:
                        # print("[DEBUG]Updating dropdown with status: {status_name}")
                         self.config_tool.update_dropdown(status_name)  # Update dropdown with matched status
                     else:
-                        print("[DEBUG] No valid status found. Clearing dropdown.")
+                       # print("[DEBUG] No valid status found. Clearing dropdown.")
                         self.config_tool.update_dropdown("")  # No valid status, clear the dropdown
                 else:
-                    print("[DEBUG] No match found. Saved as new template.")
+                   # print("[DEBUG] No match found. Saved as new template.")
                     self.config_tool.update_dropdown("")  # Clear dropdown for a new template
-                return file_path, temp_img_id
+                return file_path, self.temp_img_id
 
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load image: {e}")
         return None
-
-
     
-    def draw_parameters_and_features(self, temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color):
+    def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
         """
         Draw rectangles and names/IDs of the parameters and features for the matched template,
         with different colors for parameters and features. The positions are scaled according to
         the resized image dimensions.
         """
         # Use the Painter class to draw the parameters and features on the image
-        self.painter.draw_rectangle(temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color)
-
-
-            
+        self.painter.draw_rectangle(self.temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color)
         
     def add_new_template(self, img_path, img_size):
         """
@@ -159,12 +154,9 @@ class ButtonFunctions:
 
         return new_template_id
 
-
-
-
     def add_par_but_func_threaded(self, resize_percent_width, resize_percent_height, img_not_none, box_color):
         def add_par_thread():
-            print("[DEBUG] 'Add New Parameter' button clicked.")
+           # print("[DEBUG] 'Add New Parameter' button clicked.")
             if not img_not_none:
                 print("[ERROR] No image loaded, cannot add parameter.")
                 return
@@ -184,7 +176,7 @@ class ButtonFunctions:
             par_name, par_pos = self.painter.last_rectangle.popitem()
 
             # Get the template ID from the stored temp_img_id in ConfigurationTool
-            current_template_id = self.config_tool.get_current_template_id()  # Access the method from ConfigurationTool
+            current_template_id = self.config_tool.get_current_template_id()  # Access the method from ConfigurationTool............................... to delete
 
             if current_template_id is not None:
                 self.add_parameter_to_config(current_template_id, par_name, par_pos)
@@ -196,12 +188,9 @@ class ButtonFunctions:
             thread = threading.Thread(target=add_par_thread)
             thread.start()
 
-
-
-
     def add_screen_feature_but_func_threaded(self, img_size, resize_percent_width, resize_percent_height, img_not_none, box_color):
         def add_mode_thread():
-            print("[DEBUG] 'Add Screen Feature' button clicked.")
+           # print("[DEBUG] 'Add Screen Feature' button clicked.")
             if not self.img_path:
                 messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
                 return
@@ -233,15 +222,13 @@ class ButtonFunctions:
 
                 # Refresh/reload the config.json file after adding the feature
                 self.config_tool.reload_config()
-                print("[DEBUG] config.json reloaded after adding screen feature.")
+               # print("[DEBUG] config.json reloaded after adding screen feature.")
             else:
                 print("[ERROR] Failed to add screen feature due to invalid template ID.")
 
         if img_not_none:
             thread = threading.Thread(target=add_mode_thread)
             thread.start()
-
-
 
     def add_parameter_to_config(self, template_id, par_name, par_pos):
         """
@@ -281,9 +268,6 @@ class ButtonFunctions:
 
        # print("[DEBUG]Parameter '{par_name}' added and config.json updated successfully.")
 
-
-
-
     def add_feature_to_config(self, template_id, feature_name, feature_pos):
         """
         Adds a feature to the config.json file for the given template_id.
@@ -312,8 +296,6 @@ class ButtonFunctions:
         # Save the updated config.json
         with open(self.mde_config_file_path, 'w') as file:
             json.dump(config_data, file, indent=2)
-
-
 
     def clear_canvas(self, img_canvas, img_item):
         """
