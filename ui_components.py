@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 from button_actions import ButtonFunctions
 from styles import configure_style  # Import the style configuration function
+from helpers import get_machine_status_from_temp_img_id
 
 class ConfigurationTool:
     def __init__(self, mde_config_dir, mde_config_file_name, templates_dir_name, choices_dict):
@@ -42,6 +43,7 @@ class ConfigurationTool:
 
         self.resized_img= None
         self.original_image= None
+        self.status_info=None
         self.create_ui(screen_width, screen_height)
     
     def get_current_template_id(self): 
@@ -158,7 +160,7 @@ class ConfigurationTool:
         If the status name is None or empty, it will clear the dropdown and set the background to red.
         If a status is provided, it will stop blinking and set the dropdown to the status.
         """
-        #print(f"[DEBUG..............update_dropdown (f)......] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
+        print(f"[DEBUG..............update_dropdown (f)......] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
 
         if status_name:
             # Stop blinking if active and set the dropdown to the status name
@@ -229,7 +231,13 @@ class ConfigurationTool:
            # print("[DEBUG] Image data retrieved. Setting 'image_selected' to True.")
             self.image_selected = True  # Set image_selected to True before loading the image
             self.load_image(image_data)  # Load the image first
-          #  self.update_dropdown('')  # Then, call update_dropdown to trigger blinking if necessary
+            
+            self.status_info = get_machine_status_from_temp_img_id(self.but_functions.temp_img_id)        
+            if self.status_info:
+                status_name, _ = self.status_info
+                self.update_dropdown(status_name)  # Then, call update_dropdown to trigger blinking if necessary
+            else:
+                self.update_dropdown('') 
         else:
            print("[DEBUG] No image data retrieved.")
 
@@ -296,40 +304,51 @@ class ConfigurationTool:
         Adds a new parameter to the selected image.
         Draws a green rectangle when clicked.
         """
-       # print("[DEBUG] 'Add New Parameter' button clicked.")
-        if hasattr(self, 'original_image'):
+         
+        if hasattr(self, 'original_image')and self.original_image is not None:
             # Activate drawing with green color for parameters
            # print("[DEBUG] Image is loaded. Proceeding to add parameter.")
-            self.but_functions.add_par_but_func_threaded(
-                resize_percent_width=self.resize_percent_width,
-                resize_percent_height=self.resize_percent_height,
-                img_not_none=True,
-                box_color="#00FF00"  # Green color for parameter box
-            )
+            if self.but_functions.selected_key is not None:
+                self.but_functions.add_par_but_func_threaded(
+                    resize_percent_width=self.resize_percent_width,
+                    resize_percent_height=self.resize_percent_height,
+                    img_not_none=True,
+                    box_color="#00FF00"  # Green color for parameter box
+                )
+            else:
+                # Warn the user if no valid option was selected
+                messagebox.showwarning("No Selection", "Please choose an option first.")
         else:
            # print("[DEBUG] No image loaded. Showing warning.")
             messagebox.showwarning("No Image", "Please load an image first.")
 
+
     def add_screen_feature(self):
         """
         Adds a new mode and feature to the selected image.
-        Draws a red rectangle when clicked.
+        Draws a red rectangle when clicked, using temp_img_id as the reference.
         """
-       # print("[DEBUG] 'Add Screen Feature' button clicked.")
+       
+        
         # Check if an image has been loaded
-        if hasattr(self, 'original_image'):
-            img_size = {"width": self.original_image.width, "height": self.original_image.height}
-            # print("[DEBUG] Image size for features: {img_size}")
-            # Activate drawing with red color for modes and features
-            self.but_functions.add_screen_feature_but_func_threaded(
-                img_size=img_size,
-                resize_percent_width=self.resize_percent_width,
-                resize_percent_height=self.resize_percent_height,
-                img_not_none=True,
-                box_color="#FF0000"  # Red color for mode/feature box
-            )
+        if hasattr(self, 'original_image') and self.original_image is not None:
+            # Check if temp_img_id is valid
+            if self.but_functions.selected_key is not None:
+                img_size = {"width": self.original_image.width, "height": self.original_image.height}
+                
+                # Activate drawing with red color for modes and features
+                self.but_functions.add_screen_feature_but_func_threaded(
+                    img_size=img_size,
+                    resize_percent_width=self.resize_percent_width,
+                    resize_percent_height=self.resize_percent_height,
+                    img_not_none=True,
+                    box_color="#FF0000"  # Red color for mode/feature box
+                )
+            else:
+                # Warn the user if no valid option was selected
+                messagebox.showwarning("No Selection", "Please choose an option first.")
         else:
-           # print("[DEBUG] No image loaded. Showing warning.")
+            # Warn the user if no image was loaded
             messagebox.showwarning("No Image", "Please load an image first.")
 
     def clear_canvas(self):

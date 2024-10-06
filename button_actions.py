@@ -16,7 +16,7 @@ class ButtonFunctions:
         self.templates_dir = os.path.join(mde_config_dir, templates_dir_name)
         self.config_tool = config_tool  # Store the ConfigurationTool instance
         self.img_path = None  # Add this line to store the image path globally
-
+        self.selected_key = None
         # Ensure the config directory, templates directory, and config.json file exist
         self.ensure_directories_and_config(mde_config_dir, self.templates_dir, self.mde_config_file_path)
 
@@ -111,9 +111,9 @@ class ButtonFunctions:
 
         # Get the selected key from the dropdown
         selected_name = self.config_tool.selected_option.get()  
-        selected_key = self.config_tool.name_to_key.get(selected_name, None) 
+        self.selected_key = self.config_tool.name_to_key.get(selected_name, None) 
 
-        if selected_key is None:
+        if self.selected_key is None:
             # If no dropdown option is selected, change the dropdown field background to red
             self.config_tool.dropdown.config(foreground='black', background='red')
             return None
@@ -123,7 +123,7 @@ class ButtonFunctions:
 
         # Retrieve the range from choices_dict using the selected key
         choices_dict = self.config_tool.choices_dict
-        image_id_range = choices_dict[selected_key]["range"]
+        image_id_range = choices_dict[self.selected_key]["range"]
 
         # Get the max image ID in the selected range
         max_image_id = get_max_image_id(config_data, image_id_range)
