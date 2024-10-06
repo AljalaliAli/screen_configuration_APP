@@ -135,7 +135,7 @@ class ConfigurationTool:
        # print("[DEBUG] Dropdown frame created.")
 
         # Create the label for the dropdown inside the frame
-        self.dropdown_label = Label(self.dropdown_frame, text="Select Option:", bg='#000', fg='white')
+        self.dropdown_label = Label(self.dropdown_frame, text="Select machine status", bg='#000', fg='white')
         self.dropdown_label.pack(anchor='w')
        # print("[DEBUG] Dropdown label added.")
 
@@ -304,23 +304,25 @@ class ConfigurationTool:
         Adds a new parameter to the selected image.
         Draws a green rectangle when clicked.
         """
+         
        # Get the selected key from the dropdown
         selected_name = self.but_functions.config_tool.selected_option.get()  
         self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None) 
           
         if hasattr(self, 'original_image')and self.original_image is not None:
-            # Activate drawing with green color for parameters
-           # print("[DEBUG] Image is loaded. Proceeding to add parameter.")
-            if self.selected_key is not None:
-                self.but_functions.add_par_but_func_threaded(
-                    resize_percent_width=self.resize_percent_width,
-                    resize_percent_height=self.resize_percent_height,
-                    img_not_none=True,
-                    box_color="#00FF00"  # Green color for parameter box
-                )
-            else:
-                # Warn the user if no valid option was selected
-                messagebox.showwarning("No Selection", "Please choose an option first.")
+                if  self.but_functions.temp_img_id != -1:
+                    if self.selected_key is not None:
+                        self.but_functions.add_par_but_func_threaded(
+                            resize_percent_width=self.resize_percent_width,
+                            resize_percent_height=self.resize_percent_height,
+                            img_not_none=True,
+                            box_color="#00FF00"  # Green color for parameter box
+                        )
+                    else:
+                        # Warn the user if no valid option was selected
+                        messagebox.showwarning("No Selection", "Please choose an potential machine status first.")
+                else:
+                    messagebox.showwarning("No screenfeatures", "Please add a screen feature first.")
         else:
            # print("[DEBUG] No image loaded. Showing warning.")
             messagebox.showwarning("No Image", "Please load an image first.")
@@ -351,7 +353,7 @@ class ConfigurationTool:
                 )
             else:
                 # Warn the user if no valid option was selected
-                messagebox.showwarning("No Selection", "Please choose an option first.")
+                messagebox.showwarning("No Selection", "Please choose an potential machine status first")
         else:
             # Warn the user if no image was loaded
             messagebox.showwarning("No Image", "Please load an image first.")
