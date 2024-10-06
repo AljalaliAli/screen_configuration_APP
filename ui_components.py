@@ -304,11 +304,14 @@ class ConfigurationTool:
         Adds a new parameter to the selected image.
         Draws a green rectangle when clicked.
         """
-         
+       # Get the selected key from the dropdown
+        selected_name = self.but_functions.config_tool.selected_option.get()  
+        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None) 
+          
         if hasattr(self, 'original_image')and self.original_image is not None:
             # Activate drawing with green color for parameters
            # print("[DEBUG] Image is loaded. Proceeding to add parameter.")
-            if self.but_functions.selected_key is not None:
+            if self.selected_key is not None:
                 self.but_functions.add_par_but_func_threaded(
                     resize_percent_width=self.resize_percent_width,
                     resize_percent_height=self.resize_percent_height,
@@ -328,12 +331,14 @@ class ConfigurationTool:
         Adds a new mode and feature to the selected image.
         Draws a red rectangle when clicked, using temp_img_id as the reference.
         """
-       
+       # Get the selected key from the dropdown
+        selected_name = self.but_functions.config_tool.selected_option.get()  
+        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None) 
         
         # Check if an image has been loaded
         if hasattr(self, 'original_image') and self.original_image is not None:
             # Check if temp_img_id is valid
-            if self.but_functions.selected_key is not None:
+            if self.selected_key is not None:
                 img_size = {"width": self.original_image.width, "height": self.original_image.height}
                 
                 # Activate drawing with red color for modes and features
