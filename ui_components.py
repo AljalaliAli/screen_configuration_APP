@@ -12,7 +12,7 @@ class ConfigurationTool:
         self.templates_dir_name = templates_dir_name
         self.choices_dict = choices_dict
         self.blinking_active = False  # Initialize blinking state
-        self.current_template_id = None  # Store the template ID (temp_img_id)
+      
 
         # Initialize the root window
         self.root = Tk()
@@ -46,7 +46,7 @@ class ConfigurationTool:
         self.status_info=None
         self.create_ui(screen_width, screen_height)
     
-    def get_current_template_id(self): 
+    '''def get_current_template_id(self): 
         """
         Retrieves the current template ID based on temp_img_id or dropdown selection.
         """
@@ -63,7 +63,7 @@ class ConfigurationTool:
             return selected_key
         else:
             print("[ERROR] No valid template ID found from the dropdown or temp_img_id.")
-            return None
+            return None'''
     def create_ui(self, screen_width, screen_height):
         # Main container that holds both the image and the sidebar
         self.main_container = Frame(self.root)

@@ -15,13 +15,14 @@ class ButtonFunctions:
         self.mde_config_file_path = os.path.join(mde_config_dir, mde_config_file_name)
         self.templates_dir = os.path.join(mde_config_dir, templates_dir_name)
         self.config_tool = config_tool  # Store the ConfigurationTool instance
-        self.img_path = None  # Add this line to store the image path globally
+        self.img_path = None  # Store the image path globally
         self.selected_key = None
+        self.temp_img_id = None  # Initialize temp_img_id
+
         # Ensure the config directory, templates directory, and config.json file exist
         self.ensure_directories_and_config(mde_config_dir, self.templates_dir, self.mde_config_file_path)
 
         # Create ImageMatcher object for image comparison
-        self.temp_img_id=None
         self.matcher = ImageMatcher(mde_config_dir, mde_config_file_name, templates_dir_name)
 
         # Initialize the painter class
@@ -151,12 +152,13 @@ class ButtonFunctions:
         # Save the updated config.json
         with open(self.mde_config_file_path, 'w') as file:
             json.dump(config_data, file, indent=2)
-
+        print(f"New template ID = {new_template_id}")
+        self.temp_img_id = new_template_id  # Update self.temp_img_id
         return new_template_id
 
     def add_par_but_func_threaded(self, resize_percent_width, resize_percent_height, img_not_none, box_color):
         def add_par_thread():
-           # print("[DEBUG] 'Add New Parameter' button clicked.")
+            print(f"[DEBUG] 'Add New Parameter' button clicked. self.temp_img_id = {self.temp_img_id}")
             if not img_not_none:
                 print("[ERROR] No image loaded, cannot add parameter.")
                 return
@@ -166,7 +168,7 @@ class ButtonFunctions:
                 add_par_but_clicked=True,
                 resize_percent_width=resize_percent_width,
                 resize_percent_height=resize_percent_height,
-                box_color=box_color  # Pass the color for drawing
+                box_color=box_color
             )
 
             while self.painter.last_rectangle == {}:
@@ -175,12 +177,12 @@ class ButtonFunctions:
             # Get the parameter name and position
             par_name, par_pos = self.painter.last_rectangle.popitem()
 
-            # Get the template ID from the stored temp_img_id in ConfigurationTool
-            current_template_id = self.config_tool.get_current_template_id()  # Access the method from ConfigurationTool............................... to delete
+            # Retrieve temp_img_id from config_tool
+            self.temp_img_id = self.config_tool.temp_img_id
 
-            if current_template_id is not None:
-                self.add_parameter_to_config(current_template_id, par_name, par_pos)
-               # print("[DEBUG]Parameter '{par_name}' added to template ID: {current_template_id}")
+            if self.temp_img_id is not None:
+                self.add_parameter_to_config(self.temp_img_id, par_name, par_pos)
+                print(f"[DEBUG] Parameter '{par_name}' added to template ID: {self.temp_img_id}")
             else:
                 print("[ERROR] No valid template ID found for adding parameter.")
 
@@ -190,17 +192,17 @@ class ButtonFunctions:
 
     def add_screen_feature_but_func_threaded(self, img_size, resize_percent_width, resize_percent_height, img_not_none, box_color):
         def add_mode_thread():
-           # print("[DEBUG] 'Add Screen Feature' button clicked.")
+            print("[DEBUG] 'Add Screen Feature' button clicked.")
             if not self.img_path:
                 messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
                 return
 
-            # Activate drawing mode with the specific color for mode/feature (red)
+            # Activate drawing mode with the specific color for features
             self.painter.activate_drawing(
                 add_feature_but_clicked=True,
                 resize_percent_width=resize_percent_width,
                 resize_percent_height=resize_percent_height,
-                box_color=box_color  # Pass the color for drawing
+                box_color=box_color
             )
 
             while self.painter.last_rectangle == {}:
@@ -209,26 +211,27 @@ class ButtonFunctions:
             # Get the feature name and position
             feature_name, feature_pos = self.painter.last_rectangle.popitem()
 
-            # Use the correct template_id for adding the feature (get from temp_img_id)
+            # Add new template and get its ID
             template_id = self.add_new_template(self.img_path, img_size)
 
             if template_id is not None:
                 self.add_feature_to_config(template_id, feature_name, feature_pos)
-               # print("[DEBUG]Feature added to config.json with template ID: {template_id}")
+                print(f"[DEBUG] Feature '{feature_name}' added to template ID: {template_id}")
 
                 # Store the template_id (temp_img_id) in the config_tool for later use
-                self.config_tool.current_template_id = template_id
-               # print("[DEBUG]Stored current template ID (temp_img_id): {template_id}")
+                self.config_tool.temp_img_id = template_id  # Store in config_tool
+                print(f"[DEBUG] Stored current template ID (temp_img_id): {template_id}")
 
                 # Refresh/reload the config.json file after adding the feature
                 self.config_tool.reload_config()
-               # print("[DEBUG] config.json reloaded after adding screen feature.")
+                print("[DEBUG] config.json reloaded after adding screen feature.")
             else:
                 print("[ERROR] Failed to add screen feature due to invalid template ID.")
 
         if img_not_none:
             thread = threading.Thread(target=add_mode_thread)
             thread.start()
+
 
     def add_parameter_to_config(self, template_id, par_name, par_pos):
         """
