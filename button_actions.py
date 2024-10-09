@@ -306,6 +306,7 @@ class ButtonFunctions:
         """
         Clears the canvas except for the loaded image.
         """
+        self.config_tool.update_dropdown("")  # No valid status, clear the dropdown 
         for item in img_canvas.find_all():
             if item != img_item:
                 img_canvas.delete(item)
