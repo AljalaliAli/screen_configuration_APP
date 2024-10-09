@@ -215,17 +215,19 @@ class ButtonFunctions:
             # Get the feature name and position
             feature_name, feature_pos = self.painter.last_rectangle.popitem()
            # print(f"[###########Debug 1 ............. self.config_tool.temp_img_id = {self.config_tool.temp_img_id}]")
-            # Add new template and get its ID
-            if self.config_tool.temp_img_id == -1:
-                template_id = self.add_new_template(self.img_path, img_size)
-            #print(f"[###########Debug 2............. self.config_tool.temp_img_id = {self.config_tool.temp_img_id}]")
-            if template_id is not None:
-                self.add_feature_to_config(template_id, feature_name, feature_pos)
-                print(f"[DEBUG] Feature '{feature_name}' added to template ID: {template_id}")
+            
+            if self.config_tool.temp_img_id is not None:
+                if self.config_tool.temp_img_id == -1:
+                    # Add new template and get its ID
+                    self.config_tool.temp_img_id = self.add_new_template(self.img_path, img_size)
+                #print(f"[###########Debug 2............. self.config_tool.temp_img_id = {self.config_tool.temp_img_id}]")
+                #if template_id is not None:
+                self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
+                print(f"[DEBUG] Feature '{feature_name}' added to template ID: {self.config_tool.temp_img_id}")
 
                 # Store the template_id (temp_img_id) in the config_tool for later use
-                self.config_tool.temp_img_id = template_id  # Store in config_tool
-                print(f"[DEBUG] Stored current template ID (temp_img_id): {template_id}")
+            # self.config_tool.temp_img_id = template_id  # Store in config_tool
+                print(f"[DEBUG] Stored current template ID (temp_img_id): {self.config_tool.temp_img_id}")
 
                 # Refresh/reload the config.json file after adding the feature
                 self.config_tool.reload_config()
