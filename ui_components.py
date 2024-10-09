@@ -1,9 +1,11 @@
+import json  # Make sure to import json
 from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 from button_actions import ButtonFunctions
 from styles import configure_style  # Import the style configuration function
 from helpers import get_machine_status_from_temp_img_id
+import os  # Import os for file operations
 
 class ConfigurationTool:
     def __init__(self, mde_config_dir, mde_config_file_name, templates_dir_name, choices_dict):
@@ -14,6 +16,7 @@ class ConfigurationTool:
         self.blinking_active = False  # Initialize blinking state
 
         self.temp_img_id = None  # Initialize temp_img_id
+        self.img_path = None  # Store the image path
 
         # Initialize the root window
         self.root = Tk()
@@ -92,6 +95,14 @@ class ConfigurationTool:
         clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
         clear_canvas_but.pack(fill=X, **pad_options)
 
+        # Button to delete features or parameters
+        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters", command=self.delete_items)
+        self.delete_items_but.pack(fill=X, **pad_options)
+
+        # **New Reset Button**
+        self.reset_but = Button(self.side_bar, text="Reset Template", command=self.reset_template)
+        self.reset_but.pack(fill=X, **pad_options)
+
         # Separator
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
@@ -128,7 +139,7 @@ class ConfigurationTool:
         If the status name is None or empty, it will clear the dropdown and set the background to red.
         If a status is provided, it will stop blinking and set the dropdown to the status.
         """
-        print(f"[DEBUG..............update_dropdown (f)......] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
+        print(f"[DEBUG] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")  # Debug statement
 
         if status_name:
             # Stop blinking if active and set the dropdown to the status name
@@ -142,11 +153,11 @@ class ConfigurationTool:
             self.dropdown.set('')  # Clear the dropdown
 
             if self.image_selected:
-                print("[DEBUG..............update_dropdown (f)......] Image is selected and blinking is not active. Starting blinking.")
+                print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
                 if not self.blinking_active:
                     self.start_blinking()  # Start the blinking effect if it’s not already active
             else:
-                print("[DEBUG..............update_dropdown (f)......] No image selected. Dropdown frame remains normal.")
+                print("[DEBUG] No image selected. Dropdown frame remains normal.")
 
     def start_blinking(self):
         if not self.blinking:
@@ -186,6 +197,7 @@ class ConfigurationTool:
         image_data = self.but_functions.browse_files()
         if image_data:
             self.image_selected = True  # Set image_selected to True before loading the image
+            self.img_path = image_data[0]  # Store the image path
             self.load_image(image_data)  # Load the image first
 
             self.status_info = get_machine_status_from_temp_img_id(self.but_functions.temp_img_id)
@@ -244,16 +256,16 @@ class ConfigurationTool:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to display image: {e}")
                 print(f"[ERROR] Exception occurred while loading image: {e}")
-                
+
     def add_parameter(self):
         """
         Adds a new parameter to the selected image.
         Draws a green rectangle when clicked.
         """
         # Get the selected key from the dropdown
-        selected_name = self.but_functions.config_tool.selected_option.get()  
-        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None) 
-          
+        selected_name = self.but_functions.config_tool.selected_option.get()
+        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None)
+
         if hasattr(self, 'original_image') and self.original_image is not None:
             if self.but_functions.temp_img_id != -1:
                 if self.selected_key is not None:
@@ -279,9 +291,9 @@ class ConfigurationTool:
         Draws a red rectangle when clicked, using temp_img_id as the reference.
         """
         # Get the selected key from the dropdown
-        selected_name = self.but_functions.config_tool.selected_option.get()  
-        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None) 
-        
+        selected_name = self.but_functions.config_tool.selected_option.get()
+        self.selected_key = self.but_functions.config_tool.name_to_key.get(selected_name, None)
+
         # Check if an image has been loaded
         if hasattr(self, 'original_image') and self.original_image is not None:
             # Check if temp_img_id is valid
@@ -337,13 +349,185 @@ class ConfigurationTool:
             # Start blinking if image is selected
             if self.image_selected and not self.blinking:
                 self.start_blinking()
-   
+
     def reload_config(self):
         """
         Reloads the config.json file after adding a new screen feature or parameter.
         """
         # Call reload_config method of ButtonFunctions
         self.but_functions.reload_config()
+
+    def delete_items(self):
+        """
+        Opens a dialog to select and delete features or parameters from the selected image.
+        """
+        if self.temp_img_id is None:
+            messagebox.showwarning("No Image Selected", "Please select an image first.")
+            return
+
+        # Open the delete dialog
+        self.open_delete_dialog()
+
+    def open_delete_dialog(self):
+        # Create a new Toplevel window
+        delete_window = Toplevel(self.root)
+        delete_window.title("Delete Features/Parameters")
+        delete_window.geometry("400x400")
+
+        # Create radio buttons to select between Features and Parameters
+        choice_var = StringVar(value="features")
+        features_radio = Radiobutton(delete_window, text="Features", variable=choice_var, value="features")
+        parameters_radio = Radiobutton(delete_window, text="Parameters", variable=choice_var, value="parameters")
+        features_radio.pack(anchor=W)
+        parameters_radio.pack(anchor=W)
+
+        # Button to load the items
+        load_button = Button(delete_window, text="Load Items", command=lambda: self.load_items(delete_window, choice_var.get()))
+        load_button.pack(pady=10)
+
+    def load_items(self, window, item_type):
+        # Clear any existing widgets in the window
+        for widget in window.winfo_children():
+            widget.destroy()
+
+        # Get the items from the JSON file
+        items = self.get_items(item_type)
+
+        if not items:
+            messagebox.showinfo("No Items", f"No {item_type.capitalize()} found in the selected image.")
+            window.destroy()
+            return
+
+        # Display the items with checkboxes
+        Label(window, text=f"Select {item_type.capitalize()} to delete:").pack()
+
+        item_vars = {}
+        for item_id, item_info in items.items():
+            var = BooleanVar()
+            item_text = f"ID: {item_id}, Name: {item_info.get('name', 'N/A')}"
+            chk = Checkbutton(window, text=item_text, variable=var)
+            chk.pack(anchor=W)
+            item_vars[item_id] = var
+
+        # Button to delete selected items
+        delete_button = Button(window, text="Delete Selected", command=lambda: self.confirm_delete(window, item_type, item_vars))
+        delete_button.pack(pady=10)
+
+    def get_items(self, item_type):
+        # Load the JSON data
+        with open(self.but_functions.mde_config_file_path, 'r') as f:
+            data = json.load(f)
+
+        image_id = str(self.temp_img_id)
+        items = data['images'][image_id].get(item_type, {})
+        return items
+
+    def confirm_delete(self, window, item_type, item_vars):
+        # Get the selected item IDs
+        selected_ids = [item_id for item_id, var in item_vars.items() if var.get()]
+
+        if not selected_ids:
+            messagebox.showinfo("No Selection", "No items selected to delete.")
+            return
+
+        # Confirm deletion
+        result = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to delete the selected {item_type}?")
+
+        if result:
+            # Perform deletion
+            self.delete_selected_items(item_type, selected_ids)
+            messagebox.showinfo("Deleted", "Selected items have been deleted.")
+            window.destroy()
+
+            # Redraw the image to reflect changes
+            self.load_image((self.img_path, self.temp_img_id))
+
+    def delete_selected_items(self, item_type, item_ids):
+        # Load the JSON data
+        with open(self.but_functions.mde_config_file_path, 'r') as f:
+            data = json.load(f)
+
+        image_id = str(self.temp_img_id)
+        items = data['images'][image_id].get(item_type, {})
+
+        for item_id in item_ids:
+            if item_id in items:
+                del items[item_id]
+
+        # Save the updated data
+        with open(self.but_functions.mde_config_file_path, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    # **New Method for Resetting Template**
+    def reset_template(self):
+        """
+        Deletes the current image template data from the config.json and deletes the image file.
+        """
+        if self.temp_img_id is None or self.img_path is None:
+            messagebox.showwarning("No Image Selected", "Please select an image first.")
+            return
+
+        # Confirm reset action
+        result = messagebox.askyesno("Confirm Reset", "Are you sure you want to reset this template? This will delete all associated data and the image file.")
+
+        if result:
+            # Delete from config.json
+            self.delete_template_data()
+
+            # Delete the image file
+            self.delete_image_file()
+
+            # Clear the canvas and reset variables
+            self.clear_canvas()
+            self.temp_img_id = None
+            self.img_path = None
+            self.original_image = None
+            self.resized_img = None
+            self.image_selected = False
+            self.update_dropdown('')
+
+            # **Reinitialize the matcher and painter**
+            self.but_functions.reload_config()
+
+            messagebox.showinfo("Template Reset", "The template has been reset successfully.")
+
+
+    def delete_template_data(self):
+        """
+        Deletes the template data from the config.json file.
+        """
+        try:
+            with open(self.but_functions.mde_config_file_path, 'r') as f:
+                data = json.load(f)
+
+            image_id = str(self.temp_img_id)
+            if image_id in data['images']:
+                del data['images'][image_id]
+
+                with open(self.but_functions.mde_config_file_path, 'w') as f:
+                    json.dump(data, f, indent=2)
+                print(f"[DEBUG] Template data for image ID {image_id} deleted from config.json.")
+            else:
+                print(f"[DEBUG] Image ID {image_id} not found in config.json.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete template data: {e}")
+
+    def delete_image_file(self):
+        """
+        Deletes the image file associated with the current template.
+        """
+        try:
+            # The image is stored in the templates directory with a name like "template_{id}.png"
+            template_image_name = f"template_{self.temp_img_id}.png"
+            template_image_path = os.path.join(self.but_functions.templates_dir, template_image_name)
+
+            if os.path.exists(template_image_path):
+                os.remove(template_image_path)
+                print(f"[DEBUG] Image file {template_image_path} deleted.")
+            else:
+                print(f"[DEBUG] Image file {template_image_path} does not exist.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete image file: {e}")
 
     def mainloop(self):
         """

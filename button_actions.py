@@ -90,7 +90,7 @@ class ButtonFunctions:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load image: {e}")
         return None
-    
+
     def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
         """
         Draw rectangles and names/IDs of the parameters and features for the matched template,
@@ -99,7 +99,7 @@ class ButtonFunctions:
         """
         # Use the Painter class to draw the parameters and features on the image
         self.painter.draw_rectangle(self.temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color)
-        
+
     def add_new_template(self, img_path, img_size):
         """
         Adds the selected image as a new template in the config.json file.
@@ -109,8 +109,8 @@ class ButtonFunctions:
             config_data = json.load(file)
 
         # Get the selected key from the dropdown
-        selected_name = self.config_tool.selected_option.get()  
-        self.selected_key = self.config_tool.name_to_key.get(selected_name, None) 
+        selected_name = self.config_tool.selected_option.get()
+        self.selected_key = self.config_tool.name_to_key.get(selected_name, None)
 
         if self.selected_key is None:
             # If no dropdown option is selected, change the dropdown field background to red
@@ -214,19 +214,16 @@ class ButtonFunctions:
 
             # Get the feature name and position
             feature_name, feature_pos = self.painter.last_rectangle.popitem()
-           # print(f"[###########Debug 1 ............. self.config_tool.temp_img_id = {self.config_tool.temp_img_id}]")
-            
+
             if self.config_tool.temp_img_id is not None:
                 if self.config_tool.temp_img_id == -1:
                     # Add new template and get its ID
                     self.config_tool.temp_img_id = self.add_new_template(self.img_path, img_size)
-                #print(f"[###########Debug 2............. self.config_tool.temp_img_id = {self.config_tool.temp_img_id}]")
-                #if template_id is not None:
+
                 self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
                 print(f"[DEBUG] Feature '{feature_name}' added to template ID: {self.config_tool.temp_img_id}")
 
                 # Store the template_id (temp_img_id) in the config_tool for later use
-            # self.config_tool.temp_img_id = template_id  # Store in config_tool
                 print(f"[DEBUG] Stored current template ID (temp_img_id): {self.config_tool.temp_img_id}")
 
                 # Refresh/reload the config.json file after adding the feature
