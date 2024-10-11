@@ -1,30 +1,48 @@
-from painter import Painter
-from tkinter import filedialog, messagebox
-from tkinter import ttk
-import threading
 import os
 import json
-import cv2
+import threading
+from tkinter import filedialog, messagebox
 from PIL import Image
+import cv2
+
+from painter import Painter
 from pattern_detection import ImageMatcher  # Import the ImageMatcher class
 from helpers import get_machine_status_from_temp_img_id, get_max_image_id
 
+
 class ButtonFunctions:
+    """
+    The ButtonFunctions class handles the actions associated with the buttons in the GUI,
+    such as loading images, adding parameters, and features.
+    """
+
     def __init__(self, img_canvas, mde_config_dir, mde_config_file_name, templates_dir_name, config_tool):
+        """
+        Initializes the ButtonFunctions class.
+
+        Parameters:
+        - img_canvas (Canvas): The canvas where images and drawings are displayed.
+        - mde_config_dir (str): Directory path for the configuration files.
+        - mde_config_file_name (str): Name of the configuration file.
+        - templates_dir_name (str): Name of the directory containing image templates.
+        - config_tool (ConfigurationTool): Reference to the main ConfigurationTool instance.
+        """
         self.img_canvas = img_canvas
-        self.mde_config_dir = mde_config_dir  # Store this
-        self.mde_config_file_name = mde_config_file_name  # Store this
-        self.templates_dir_name = templates_dir_name  # Store this
+        self.mde_config_dir = mde_config_dir
+        self.mde_config_file_name = mde_config_file_name
+        self.templates_dir_name = templates_dir_name
 
         self.mde_config_file_path = os.path.join(mde_config_dir, mde_config_file_name)
         self.templates_dir = os.path.join(mde_config_dir, templates_dir_name)
-        self.config_tool = config_tool  # Store the ConfigurationTool instance
+        self.config_tool = config_tool
         self.img_path = None  # Store the image path globally
         self.selected_key = None
         self.temp_img_id = None  # Initialize temp_img_id
 
         # Ensure the config directory, templates directory, and config.json file exist
-        self.ensure_directories_and_config(mde_config_dir, self.templates_dir, self.mde_config_file_path)
+        self.ensure_directories_and_config(
+            mde_config_dir, self.templates_dir, self.mde_config_file_path
+        )
 
         # Create ImageMatcher object for image comparison
         self.matcher = ImageMatcher(mde_config_dir, mde_config_file_name, templates_dir_name)
@@ -36,6 +54,11 @@ class ButtonFunctions:
         """
         Ensure that the config directory, templates directory, and config.json file exist.
         Create them if they don't exist.
+
+        Parameters:
+        - config_dir (str): Path to the configuration directory.
+        - templates_dir (str): Path to the templates directory.
+        - config_file (str): Path to the configuration JSON file.
         """
         # Check if the config directory exists, if not create it
         if not os.path.exists(config_dir):
@@ -55,6 +78,13 @@ class ButtonFunctions:
                 json.dump({"images": {}}, file, indent=2)
 
     def browse_files(self):
+        """
+        Opens a file dialog for the user to select an image file.
+        Processes the selected image to match with existing templates.
+
+        Returns:
+        - tuple: A tuple containing the image path and temporary image ID.
+        """
         file_path = filedialog.askopenfilename(
             filetypes=[("Image Files", "*.bmp *.jpg *.jpeg *.png *.tif *.tiff"), ("All Files", "*.*")]
         )
@@ -93,17 +123,32 @@ class ButtonFunctions:
 
     def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
         """
-        Draw rectangles and names/IDs of the parameters and features for the matched template,
+        Draws rectangles and names/IDs of the parameters and features for the matched template,
         with different colors for parameters and features. The positions are scaled according to
         the resized image dimensions.
+
+        Parameters:
+        - resize_percent_width (float): Scaling factor for width.
+        - resize_percent_height (float): Scaling factor for height.
+        - param_color (str): Color for parameter rectangles.
+        - feature_color (str): Color for feature rectangles.
         """
         # Use the Painter class to draw the parameters and features on the image
-        self.painter.draw_rectangle(self.temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color)
+        self.painter.draw_rectangle(
+            self.temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color
+        )
 
     def add_new_template(self, img_path, img_size):
         """
         Adds the selected image as a new template in the config.json file.
         Returns the template ID to be used later when adding features.
+
+        Parameters:
+        - img_path (str): Path to the image file.
+        - img_size (dict): Dictionary containing image width and height.
+
+        Returns:
+        - int: The new template ID.
         """
         with open(self.mde_config_file_path, 'r') as file:
             config_data = json.load(file)
@@ -158,10 +203,19 @@ class ButtonFunctions:
 
         return new_template_id
 
-    def add_par_but_func_threaded(self, resize_percent_width, resize_percent_height, img_not_none, box_color):
-        def add_par_thread():
+    def add_parameter_threaded(self, resize_percent_width, resize_percent_height, box_color):
+        """
+        Adds a parameter to the image in a separate thread.
+
+        Parameters:
+        - resize_percent_width (float): Scaling factor for width.
+        - resize_percent_height (float): Scaling factor for height.
+        - box_color (str): Color for the parameter box.
+        """
+
+        def add_parameter_thread():
             print(f"[DEBUG] 'Add New Parameter' button clicked. self.temp_img_id = {self.temp_img_id}")
-            if not img_not_none:
+            if self.config_tool.original_image is None:
                 print("[ERROR] No image loaded, cannot add parameter.")
                 return
 
@@ -190,12 +244,21 @@ class ButtonFunctions:
             else:
                 print("[ERROR] No valid template ID found for adding parameter.")
 
-        if img_not_none:
-            thread = threading.Thread(target=add_par_thread)
-            thread.start()
+        thread = threading.Thread(target=add_parameter_thread)
+        thread.start()
 
-    def add_screen_feature_but_func_threaded(self, img_size, resize_percent_width, resize_percent_height, img_not_none, box_color):
-        def add_mode_thread():
+    def add_screen_feature_threaded(self, img_size, resize_percent_width, resize_percent_height, box_color):
+        """
+        Adds a screen feature to the image in a separate thread.
+
+        Parameters:
+        - img_size (dict): Dictionary containing image width and height.
+        - resize_percent_width (float): Scaling factor for width.
+        - resize_percent_height (float): Scaling factor for height.
+        - box_color (str): Color for the feature box.
+        """
+
+        def add_feature_thread():
             print("[DEBUG] 'Add Screen Feature' button clicked.")
             if not self.img_path:
                 messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
@@ -235,13 +298,17 @@ class ButtonFunctions:
             else:
                 print("[ERROR] Failed to add screen feature due to invalid template ID.")
 
-        if img_not_none:
-            thread = threading.Thread(target=add_mode_thread)
-            thread.start()
+        thread = threading.Thread(target=add_feature_thread)
+        thread.start()
 
     def add_parameter_to_config(self, template_id, par_name, par_pos):
         """
         Adds a parameter to the config.json file for the given template_id.
+
+        Parameters:
+        - template_id (str): The ID of the template.
+        - par_name (str): The name of the parameter.
+        - par_pos (dict): The position of the parameter.
         """
         # Ensure template_id is a string
         template_id = str(template_id)
@@ -273,6 +340,11 @@ class ButtonFunctions:
     def add_feature_to_config(self, template_id, feature_name, feature_pos):
         """
         Adds a feature to the config.json file for the given template_id.
+
+        Parameters:
+        - template_id (str): The ID of the template.
+        - feature_name (str): The name of the feature.
+        - feature_pos (dict): The position of the feature.
         """
         with open(self.mde_config_file_path, 'r') as file:
             config_data = json.load(file)
@@ -302,8 +374,12 @@ class ButtonFunctions:
     def clear_canvas(self, img_canvas, img_item):
         """
         Clears the canvas except for the loaded image.
+
+        Parameters:
+        - img_canvas (Canvas): The canvas to clear.
+        - img_item: The image item to keep.
         """
-        self.config_tool.update_dropdown("")  # No valid status, clear the dropdown 
+        self.config_tool.update_dropdown("")  # No valid status, clear the dropdown
         for item in img_canvas.find_all():
             if item != img_item:
                 img_canvas.delete(item)
@@ -313,5 +389,7 @@ class ButtonFunctions:
         Reloads the configuration by reinitializing the matcher and painter.
         """
         # Reinitialize the matcher and painter
-        self.matcher = ImageMatcher(self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name)
+        self.matcher = ImageMatcher(
+            self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name
+        )
         self.painter = Painter(self.img_canvas, self.mde_config_file_path)
