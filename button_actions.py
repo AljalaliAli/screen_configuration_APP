@@ -161,7 +161,7 @@ class ButtonFunctions:
             # If no dropdown option is selected, change the dropdown field background to red
             self.config_tool.dropdown.config(foreground='black', background='red')
             return None
-
+        print(f"self.selected_key......................................................{self.selected_key}")
         # Reset the dropdown style if everything is fine
         self.config_tool.dropdown.config(foreground='black', background='white')
 

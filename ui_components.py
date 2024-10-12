@@ -4,6 +4,7 @@ from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 
+# Assuming ButtonFunctions, configure_style, and get_machine_status_from_temp_img_id are defined elsewhere
 from button_actions import ButtonFunctions
 from styles import configure_style
 from helpers import get_machine_status_from_temp_img_id
@@ -146,6 +147,48 @@ class ConfigurationTool:
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
 
+        # *** Added LabelFrame for Radio Buttons with Title ***
+        # LabelFrame to hold radio buttons with a title
+        radio_label_frame = LabelFrame(
+            self.side_bar,
+            text="Machine Status from Componation",
+            bg='#000',
+            fg='white',
+            padx=10,
+            pady=10
+        )
+        radio_label_frame.pack(fill=X, padx=10, pady=5)
+
+        # Variable to hold radio button selection
+        self.status_choice = StringVar(value="No")  # Default to "No"
+
+        # Radiobutton for "Yes" with custom bg and selectcolor
+        yes_radio = Radiobutton(
+            radio_label_frame,
+            text="Yes",
+            variable=self.status_choice,
+            value="Yes",
+            bg='Black',          # Custom background color for "Yes"
+            fg='white',         # Text color to ensure readability
+            selectcolor='Black',# Color of the selection indicator (dot)
+            command=self.on_status_choice
+        )
+        yes_radio.pack(anchor='w', pady=2)
+
+        # Radiobutton for "No" with custom bg and selectcolor
+        no_radio = Radiobutton(
+            radio_label_frame,
+            text="No",
+            variable=self.status_choice,
+            value="No",
+            bg='Black',         # Custom background color for "No"
+            fg='white',         # Text color to ensure readability
+            selectcolor='Black',# Color of the selection indicator (dot)
+            command=self.on_status_choice
+        )
+        no_radio.pack(anchor='w', pady=2)
+        # *** End of Added LabelFrame for Radio Buttons with Title ***
+
         # Dropdown list (Combobox) for selecting options
         options_list = [value['name'] for key, value in self.choices_dict.items()]
         self.name_to_key = {value['name']: key for key, value in self.choices_dict.items()}
@@ -174,6 +217,213 @@ class ConfigurationTool:
         # Bind dropdown selection to a function
         self.dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
 
+    def on_status_choice(self):
+        """
+        Callback method when the radio button selection changes.
+        Handles UI changes based on the selection.
+        """
+        choice = self.status_choice.get()
+        if choice == "Yes":
+            # Hide the dropdown
+            self.dropdown_frame.pack_forget()
+            # Open the parameter selection window
+            self.open_parameter_window()
+        else:
+            # Show the dropdown
+            self.dropdown_frame.pack(fill=X, padx=10, pady=5)
+            # If the parameter window is open, close it
+            if hasattr(self, 'param_window') and self.param_window.winfo_exists():
+                self.param_window.destroy()
+
+    import tkinter as tk
+    from tkinter import Toplevel, Canvas, Frame, Button, Checkbutton, IntVar, Entry, StringVar, Label, messagebox
+    from tkinter import ttk
+
+    def open_parameter_window(self):
+        """
+        Opens a new window to define machine status parameters with conditions.
+        """
+        # Prevent multiple instances
+        if hasattr(self, 'param_window') and self.param_window.winfo_exists():
+            self.param_window.lift()
+            return
+
+        self.param_window = Toplevel(self.root)
+        self.param_window.title("Define Machine Status Parameters")
+        self.param_window.geometry("600x400")
+        self.param_window.resizable(False, False)
+
+        # Example parameters - replace with actual parameters as needed
+        self.parameters = ["Temperature", "Pressure", "Speed", "Voltage"]  # You can dynamically load these if needed
+
+        # List to keep track of condition rows
+        self.condition_rows = []
+
+        # Scrollable Frame
+        container = ttk.Frame(self.param_window)
+        canvas = Canvas(container)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = ttk.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        container.pack(fill="both", expand=True)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Apply a consistent style
+        style = ttk.Style()
+        style.configure('TFrame', background='#f0f0f0')
+        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TCheckbutton', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TEntry', font=('Arial', 10))
+        style.configure('TButton', font=('Arial', 10))
+        style.configure('TCombobox', font=('Arial', 10))
+
+        # Add initial condition row
+        self.add_condition_row()
+
+        # Button Frame
+        button_frame = ttk.Frame(self.param_window)
+        button_frame.pack(pady=10)
+
+        # Add Condition button
+        add_condition_but = ttk.Button(
+            button_frame, text="Add Condition",
+            command=self.add_condition_row
+        )
+        add_condition_but.pack(side='left', padx=5)
+
+        # Submit Button
+        submit_but = ttk.Button(
+            button_frame, text="Submit",
+            command=self.submit_parameters
+        )
+        submit_but.pack(side='left', padx=5)
+
+    def add_condition_row(self):
+        """
+        Adds a new condition row to the parameter window.
+        Allows selecting any parameter from a dropdown list.
+        """
+        # If not the first condition, add a dropdown for logical operator
+        if self.condition_rows:
+            # Operator frame
+            operator_frame = ttk.Frame(self.scrollable_frame)
+            operator_frame.pack(fill='x', padx=10, pady=5)
+
+            operator_label = ttk.Label(operator_frame, text="Operator:")
+            operator_label.pack(side='left')
+
+            operator_var = StringVar()
+            operator_dropdown = ttk.Combobox(
+                operator_frame,
+                textvariable=operator_var,
+                values=["AND", "OR"],
+                state='readonly',
+                width=5
+            )
+            operator_dropdown.current(0)  # Set default to "AND"
+            operator_dropdown.pack(side='left', padx=10)
+
+            # Store operator variable in the last condition
+            self.condition_rows[-1]['operator_var'] = operator_var
+
+        # Condition frame
+        row_frame = ttk.Frame(self.scrollable_frame)
+        row_frame.pack(fill='x', padx=10, pady=5)
+
+        # Checkbox to enable/disable condition
+        var_selected = IntVar(value=1)  # Default to selected
+        chk = ttk.Checkbutton(row_frame, variable=var_selected)
+        chk.pack(side='left', padx=(0, 5))
+
+        # Dropdown for parameter name
+        param_var = StringVar()
+        param_dropdown = ttk.Combobox(
+            row_frame,
+            textvariable=param_var,
+            values=self.parameters,
+            state='readonly',
+            width=15
+        )
+        param_dropdown.current(0)  # Set default to first parameter
+        param_dropdown.pack(side='left', padx=5)
+
+        # Dropdown for operation
+        operation_var = StringVar()
+        operation_dropdown = ttk.Combobox(
+            row_frame,
+            textvariable=operation_var,
+            values=["=", ">", "<", "<=", ">="],
+            state='readonly',
+            width=5
+        )
+        operation_dropdown.current(0)  # Set default to "="
+        operation_dropdown.pack(side='left', padx=5)
+
+        # Entry for parameter value
+        entry = ttk.Entry(row_frame, width=10)
+        entry.pack(side='left', padx=5)
+
+        # Store variables
+        condition = {
+            'selected': var_selected,
+            'param_var': param_var,
+            'operation_var': operation_var,
+            'value': entry,
+        }
+        self.condition_rows.append(condition)
+
+    def submit_parameters(self):
+        """
+        Collects the selected parameters, their values, and operations.
+        """
+        selected_params = []
+        for idx, condition in enumerate(self.condition_rows):
+            if condition['selected'].get() == 1:
+                param_name = condition['param_var'].get()
+                operation = condition['operation_var'].get()
+                value = condition['value'].get()
+                operator_var = condition.get('operator_var', None)
+                if not param_name or not operation or not value:
+                    messagebox.showwarning("Input Error", "Please ensure all fields are filled.")
+                    return
+                condition_dict = {
+                    'param': param_name,
+                    'operation': operation,
+                    'value': value,
+                }
+                if idx > 0 and operator_var:
+                    condition_dict['operator'] = operator_var.get()
+                selected_params.append(condition_dict)
+
+        if not selected_params:
+            messagebox.showwarning("No Selection", "No parameters selected.")
+            return
+
+        # Process the selected parameters as needed
+        # For example, save to configuration or use in other parts of the application
+        print("Selected Parameters:")
+        for i, cond in enumerate(selected_params):
+            if i > 0 and 'operator' in cond:
+                print(f"{cond['operator']} {cond['param']} {cond['operation']} {cond['value']}")
+            else:
+                print(f"{cond['param']} {cond['operation']} {cond['value']}")
+
+        # Integrate the selected parameters into your application logic here
+
+        # Close the parameter window
+        self.param_window.destroy()
+
     def update_dropdown(self, status_name):
         """
         Updates the dropdown list to display the given status name.
@@ -189,21 +439,23 @@ class ConfigurationTool:
         if status_name:
             # Stop blinking if active and set the dropdown to the status name
             self.stop_blinking()
-            self.dropdown.configure(state='normal')  # Change to 'normal' to update
-            self.dropdown.set(status_name)  # Set the dropdown to the status name
-            # Reset to normal style and 'readonly' state
-            self.dropdown.configure(style='Custom.TCombobox', state='readonly')
+            if self.status_choice.get() == "No":
+                self.dropdown.configure(state='normal')  # Change to 'normal' to update
+                self.dropdown.set(status_name)  # Set the dropdown to the status name
+                # Reset to normal style and 'readonly' state
+                self.dropdown.configure(style='Custom.TCombobox', state='readonly')
         else:
             # No status found, clear the dropdown and initiate blinking if an image is selected
-            self.dropdown.configure(state='normal')  # Change to 'normal' to update
-            self.dropdown.set('')  # Clear the dropdown
+            if self.status_choice.get() == "No":
+                self.dropdown.configure(state='normal')  # Change to 'normal' to update
+                self.dropdown.set('')  # Clear the dropdown
 
-            if self.image_selected:
-                print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
-                if not self.blinking:
-                    self.start_blinking()  # Start the blinking effect if it’s not already active
-            else:
-                print("[DEBUG] No image selected. Dropdown frame remains normal.")
+                if self.image_selected:
+                    print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
+                    if not self.blinking:
+                        self.start_blinking()  # Start the blinking effect if it’s not already active
+                else:
+                    print("[DEBUG] No image selected. Dropdown frame remains normal.")
 
     def select_image(self):
         """
@@ -464,6 +716,20 @@ class ConfigurationTool:
         for widget in window.winfo_children():
             widget.destroy()
 
+        # Recreate the radio buttons
+        choice_var = StringVar(value=item_type)
+        features_radio = Radiobutton(window, text="Features", variable=choice_var, value="features")
+        parameters_radio = Radiobutton(window, text="Parameters", variable=choice_var, value="parameters")
+        features_radio.pack(anchor=W)
+        parameters_radio.pack(anchor=W)
+
+        # Button to load the items again if selection changes
+        load_button = Button(
+            window, text="Load Items",
+            command=lambda: self.load_items(window, choice_var.get())
+        )
+        load_button.pack(pady=10)
+
         # Get the items from the JSON file
         items = self.get_items(item_type)
 
@@ -586,15 +852,22 @@ class ConfigurationTool:
             self.delete_image_file()
 
             # Clear the canvas and reset variables
-           # self.clear_canvas()
             self.temp_img_id = None
-            #self.selected_img_path = None
-            
-            #self.original_image = None
-            #self.resized_img = None
-            ##self.image_selected = False
-            self.update_dropdown('')
-            self.load_image((self.selected_img_path, self.temp_img_id))
+            self.selected_img_path = None
+            self.original_image = None
+            self.resized_img = None
+            self.image_selected = False
+
+            # Reset the dropdown and radio buttons
+            self.status_choice.set("No")
+            self.dropdown_frame.pack(fill=X, padx=10, pady=5)
+            self.dropdown.set('')
+            self.stop_blinking()
+
+            # If the parameter window is open, close it
+            if hasattr(self, 'param_window') and self.param_window.winfo_exists():
+                self.param_window.destroy()
+
             # Reinitialize the matcher and painter
             self.but_functions.reload_config()
 
