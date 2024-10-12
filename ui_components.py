@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 # Assuming ButtonFunctions, configure_style, and get_machine_status_from_temp_img_id are defined elsewhere
 from button_actions import ButtonFunctions
 from styles import configure_style
-from helpers import get_machine_status_from_temp_img_id
+from helpers import get_machine_status_from_temp_img_id, get_parameters_and_features_by_id
 
 
 class ConfigurationTool:
@@ -240,6 +240,9 @@ class ConfigurationTool:
     from tkinter import ttk
 
     def open_parameter_window(self):
+        par_data,_ = get_parameters_and_features_by_id(r'ConfigFiles\mde_config.json', self.temp_img_id)
+        self.parameters = [item['name'] for item in par_data.values()]
+       
         """
         Opens a new window to define machine status parameters with conditions.
         """
@@ -254,7 +257,7 @@ class ConfigurationTool:
         self.param_window.resizable(False, False)
 
         # Example parameters - replace with actual parameters as needed
-        self.parameters = ["Temperature", "Pressure", "Speed", "Voltage"]  # You can dynamically load these if needed
+       # self.parameters = ["Temperature", "Pressure", "Speed", "Voltage"]  # You can dynamically load these if needed
 
         # List to keep track of condition rows
         self.condition_rows = []
