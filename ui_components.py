@@ -311,7 +311,7 @@ class ConfigurationTool:
             command=self.submit_parameters
         )
         submit_but.pack(side='left', padx=5)
-
+        
     def add_condition_row(self):
         """
         Adds a new condition row to the parameter window.
@@ -354,11 +354,16 @@ class ConfigurationTool:
         param_dropdown = ttk.Combobox(
             row_frame,
             textvariable=param_var,
-            values=self.parameters,
+            values=self.parameters,  # Assuming self.parameters is a list of available parameters
             state='readonly',
             width=15
         )
-        param_dropdown.current(0)  # Set default to first parameter
+
+        if self.parameters:  # Only set current index if parameters are available
+            param_dropdown.current(0)  # Set default to first parameter
+        else:
+            print("No parameters available for the dropdown.")
+
         param_dropdown.pack(side='left', padx=5)
 
         # Dropdown for operation
@@ -385,6 +390,7 @@ class ConfigurationTool:
             'value': entry,
         }
         self.condition_rows.append(condition)
+
 
     def submit_parameters(self):
         """
