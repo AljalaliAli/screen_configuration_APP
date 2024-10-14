@@ -4,20 +4,24 @@ from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 
-# Assuming ButtonFunctions, configure_style, and get_machine_status_from_temp_img_id are defined elsewhere
+# Assuming ButtonFunctions, configure_style, and
+# get_machine_status_from_temp_img_id are defined elsewhere
 from button_actions import ButtonFunctions
 from styles import configure_style
-from helpers import get_machine_status_from_temp_img_id, get_parameters_and_features_by_id
+from helpers import (get_machine_status_from_temp_img_id,
+                     get_parameters_and_features_by_id)
 
 
 class ConfigurationTool:
     """
-    The ConfigurationTool class represents a Tkinter-based GUI application for configuring images
-    by adding parameters and screen features. It allows users to load images, annotate them with
-    parameters and features, and manage templates.
+    The ConfigurationTool class represents a Tkinter-based GUI application
+    for configuring images by adding parameters and screen features.
+    It allows users to load images, annotate them with parameters and features,
+    and manage templates.
     """
 
-    def __init__(self, mde_config_dir, mde_config_file_name, templates_dir_name, choices_dict):
+    def __init__(self, mde_config_dir, mde_config_file_name,
+                 templates_dir_name, choices_dict):
         """
         Initializes the ConfigurationTool application.
 
@@ -45,8 +49,8 @@ class ConfigurationTool:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
 
-        # Set the main window geometry to fit the screen, minus the taskbar (with a small margin)
-        self.root.geometry(f"{screen_width}x{screen_height - 40}")  # Full screen minus a margin
+        # Set the main window geometry to fit the screen, minus the taskbar
+        self.root.geometry(f"{screen_width}x{screen_height - 40}")
 
         self.sidebar_width = 200  # Fixed sidebar width
 
@@ -64,6 +68,10 @@ class ConfigurationTool:
         self.original_image = None
         self.status_info = None
 
+        # Initialize parameters and machine statuses
+        self.parameters = []
+        self.machine_statuses = []
+
         # Create the user interface
         self.create_ui(screen_width, screen_height)
 
@@ -79,15 +87,17 @@ class ConfigurationTool:
         self.main_container = Frame(self.root)
         self.main_container.pack(fill=BOTH, expand=1)
 
-        # Create the Image Container (left side, takes the remaining screen width after sidebar)
+        # Create the Image Container
         img_container_width = screen_width - self.sidebar_width
         self.img_container = Frame(
-            self.main_container, width=img_container_width, height=screen_height, bg='#4E4E6E'
+            self.main_container, width=img_container_width,
+            height=screen_height, bg='#4E4E6E'
         )
         self.img_container.pack(side=LEFT, fill=BOTH, expand=1)
 
         # Create the Canvas to display the image
-        self.img_canvas = Canvas(self.img_container, bg='#4E4E6E', cursor="cross")
+        self.img_canvas = Canvas(self.img_container, bg='#4E4E6E',
+                                 cursor="cross")
         self.img_canvas.pack(fill=BOTH, expand=1)
 
         # Initialize ButtonFunctions with the necessary parameters
@@ -100,7 +110,8 @@ class ConfigurationTool:
         )
 
         # Create the Sidebar (right side)
-        self.side_bar = Frame(self.main_container, width=self.sidebar_width, bg='#000')
+        self.side_bar = Frame(self.main_container, width=self.sidebar_width,
+                              bg='#000')
         self.side_bar.pack(side=RIGHT, fill=Y)
 
         # Add buttons and dropdown to the sidebar
@@ -114,44 +125,50 @@ class ConfigurationTool:
         pad_options = {'padx': 10, 'pady': 5}
 
         # Button to select an image
-        select_img_but = Button(self.side_bar, text="Select Image", command=self.select_image)
+        select_img_but = Button(self.side_bar, text="Select Image",
+                                command=self.select_image)
         select_img_but.pack(fill=X, **pad_options)
 
         # Button to add a new parameter
-        self.add_par_but = Button(self.side_bar, text="Add New Parameter", command=self.add_parameter)
+        self.add_par_but = Button(self.side_bar, text="Add New Parameter",
+                                  command=self.add_parameter)
         self.add_par_but.pack(fill=X, **pad_options)
-        self.add_par_but_default_bg = self.add_par_but.cget('bg')  # Store default bg color
+        self.add_par_but_default_bg = self.add_par_but.cget('bg')
 
         # Button to add screen feature
         self.add_screen_feature_but = Button(
-            self.side_bar, text="Add Screen Feature", command=self.add_screen_feature
+            self.side_bar, text="Add Screen Feature",
+            command=self.add_screen_feature
         )
         self.add_screen_feature_but.pack(fill=X, **pad_options)
-        self.add_screen_feature_but_default_bg = self.add_screen_feature_but.cget('bg')  # Store default bg color
+        self.add_screen_feature_but_default_bg = \
+            self.add_screen_feature_but.cget('bg')
 
         # Button to clear the canvas
-        clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
+        clear_canvas_but = Button(self.side_bar, text="Clear Canvas",
+                                  command=self.clear_canvas)
         clear_canvas_but.pack(fill=X, **pad_options)
 
         # Button to delete features or parameters
         self.delete_items_but = Button(
-            self.side_bar, text="Delete Features/Parameters", command=self.delete_items
+            self.side_bar, text="Delete Features/Parameters",
+            command=self.delete_items
         )
         self.delete_items_but.pack(fill=X, **pad_options)
 
         # Reset Button
-        self.reset_but = Button(self.side_bar, text="Reset Template", command=self.reset_template)
+        self.reset_but = Button(self.side_bar, text="Reset Template",
+                                command=self.reset_template)
         self.reset_but.pack(fill=X, **pad_options)
 
         # Separator
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
 
-        # *** Added LabelFrame for Radio Buttons with Title ***
         # LabelFrame to hold radio buttons with a title
         radio_label_frame = LabelFrame(
             self.side_bar,
-            text="Machine Status from Componation",
+            text="Machine Status from Combination",
             bg='#000',
             fg='white',
             padx=10,
@@ -162,36 +179,37 @@ class ConfigurationTool:
         # Variable to hold radio button selection
         self.status_choice = StringVar(value="No")  # Default to "No"
 
-        # Radiobutton for "Yes" with custom bg and selectcolor
+        # Radiobutton for "Yes"
         yes_radio = Radiobutton(
             radio_label_frame,
             text="Yes",
             variable=self.status_choice,
             value="Yes",
-            bg='Black',          # Custom background color for "Yes"
-            fg='white',         # Text color to ensure readability
-            selectcolor='Black',# Color of the selection indicator (dot)
+            bg='Black',
+            fg='white',
+            selectcolor='Black',
             command=self.on_status_choice
         )
         yes_radio.pack(anchor='w', pady=2)
 
-        # Radiobutton for "No" with custom bg and selectcolor
+        # Radiobutton for "No"
         no_radio = Radiobutton(
             radio_label_frame,
             text="No",
             variable=self.status_choice,
             value="No",
-            bg='Black',         # Custom background color for "No"
-            fg='white',         # Text color to ensure readability
-            selectcolor='Black',# Color of the selection indicator (dot)
+            bg='Black',
+            fg='white',
+            selectcolor='Black',
             command=self.on_status_choice
         )
         no_radio.pack(anchor='w', pady=2)
-        # *** End of Added LabelFrame for Radio Buttons with Title ***
 
         # Dropdown list (Combobox) for selecting options
-        options_list = [value['name'] for key, value in self.choices_dict.items()]
-        self.name_to_key = {value['name']: key for key, value in self.choices_dict.items()}
+        options_list = [value['name']
+                        for key, value in self.choices_dict.items()]
+        self.name_to_key = {value['name']: key
+                            for key, value in self.choices_dict.items()}
         self.selected_option = StringVar()
 
         # Create a frame to hold the label and Combobox
@@ -200,7 +218,8 @@ class ConfigurationTool:
 
         # Create the label for the dropdown inside the frame
         self.dropdown_label = Label(
-            self.dropdown_frame, text="Select machine status", bg='#000', fg='white'
+            self.dropdown_frame, text="Select machine status",
+            bg='#000', fg='white'
         )
         self.dropdown_label.pack(anchor='w')
 
@@ -209,8 +228,8 @@ class ConfigurationTool:
             self.dropdown_frame,
             textvariable=self.selected_option,
             values=options_list,
-            state='readonly',  # Start in readonly state
-            style='Custom.TCombobox'  # Set initial style
+            state='readonly',
+            style='Custom.TCombobox'
         )
         self.dropdown.pack(fill=X)
 
@@ -232,22 +251,22 @@ class ConfigurationTool:
             # Show the dropdown
             self.dropdown_frame.pack(fill=X, padx=10, pady=5)
             # If the parameter window is open, close it
-            if hasattr(self, 'param_window') and self.param_window.winfo_exists():
+            if hasattr(self, 'param_window') and \
+                    self.param_window.winfo_exists():
                 self.param_window.destroy()
 
-    import tkinter as tk
-    from tkinter import Toplevel, Canvas, Frame, Button, Checkbutton, IntVar, Entry, StringVar, Label, messagebox
-    from tkinter import ttk
-
     def open_parameter_window(self):
-        par_data,_ = get_parameters_and_features_by_id(r'ConfigFiles\mde_config.json', self.temp_img_id)
+        """
+        Opens a new window to define machine status parameters
+        with conditions.
+        """
+        par_data, _ = get_parameters_and_features_by_id(
+            r'ConfigFiles\mde_config.json', self.temp_img_id)
         self.parameters = [item['name'] for item in par_data.values()]
-       
-        """
-        Opens a new window to define machine status parameters with conditions.
-        """
+
         # Prevent multiple instances
-        if hasattr(self, 'param_window') and self.param_window.winfo_exists():
+        if hasattr(self, 'param_window') and \
+                self.param_window.winfo_exists():
             self.param_window.lift()
             return
 
@@ -256,16 +275,14 @@ class ConfigurationTool:
         self.param_window.geometry("600x400")
         self.param_window.resizable(False, False)
 
-        # Example parameters - replace with actual parameters as needed
-       # self.parameters = ["Temperature", "Pressure", "Speed", "Voltage"]  # You can dynamically load these if needed
-
-        # List to keep track of condition rows
-        self.condition_rows = []
+        # List to keep track of condition groups
+        self.condition_groups = []
 
         # Scrollable Frame
         container = ttk.Frame(self.param_window)
         canvas = Canvas(container)
-        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollbar = ttk.Scrollbar(container, orient="vertical",
+                                  command=canvas.yview)
         self.scrollable_frame = ttk.Frame(canvas)
 
         self.scrollable_frame.bind(
@@ -275,7 +292,8 @@ class ConfigurationTool:
             )
         )
 
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
+        canvas.create_window((0, 0), window=self.scrollable_frame,
+                             anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
         container.pack(fill="both", expand=True)
@@ -285,25 +303,32 @@ class ConfigurationTool:
         # Apply a consistent style
         style = ttk.Style()
         style.configure('TFrame', background='#f0f0f0')
-        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
-        style.configure('TCheckbutton', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TLabel', background='#f0f0f0',
+                        font=('Arial', 10))
+        style.configure('TCheckbutton', background='#f0f0f0',
+                        font=('Arial', 10))
         style.configure('TEntry', font=('Arial', 10))
         style.configure('TButton', font=('Arial', 10))
         style.configure('TCombobox', font=('Arial', 10))
 
-        # Add initial condition row
-        self.add_condition_row()
+        # Get machine statuses from choices_dict
+        self.machine_statuses = [value['name']
+                                 for key, value in
+                                 self.choices_dict.items()]
+
+        # Add initial condition group
+        self.add_condition_group()
 
         # Button Frame
         button_frame = ttk.Frame(self.param_window)
         button_frame.pack(pady=10)
 
-        # Add Condition button
-        add_condition_but = ttk.Button(
-            button_frame, text="Add Condition",
-            command=self.add_condition_row
+        # Add Condition Group button
+        add_condition_group_but = ttk.Button(
+            button_frame, text="Add Condition Group",
+            command=self.add_condition_group
         )
-        add_condition_but.pack(side='left', padx=5)
+        add_condition_group_but.pack(side='left', padx=5)
 
         # Submit Button
         submit_but = ttk.Button(
@@ -311,16 +336,71 @@ class ConfigurationTool:
             command=self.submit_parameters
         )
         submit_but.pack(side='left', padx=5)
-        
-    def add_condition_row(self):
+
+    def add_condition_group(self):
         """
-        Adds a new condition row to the parameter window.
+        Adds a new condition group to the parameter window.
+        Each group allows selecting machine status and adding
+        condition rows connected with logical operators.
+        """
+        group = {}  # Dictionary to store group info
+
+        # Frame for the group using standard Frame to support 'relief' and 'borderwidth'
+        group_frame = Frame(self.scrollable_frame, relief='groove', borderwidth=2)
+        group_frame.pack(fill='x', padx=10, pady=10, ipady=5, ipadx=5)
+
+        # Store group frame before adding condition rows
+        group['frame'] = group_frame
+
+        # Machine status selection
+        status_label = ttk.Label(group_frame, text="Machine Status:")
+        status_label.pack(anchor='w')
+
+        status_var = StringVar()
+        status_dropdown = ttk.Combobox(
+            group_frame,
+            textvariable=status_var,
+            values=self.machine_statuses,
+            state='readonly',
+            width=20
+        )
+        status_dropdown.pack(anchor='w', padx=5, pady=5)
+
+        # Initialize group's condition rows list
+        group['condition_rows'] = []
+
+        # Function to add condition row within this group
+        def add_condition_row_in_group():
+            self.add_condition_row(group)
+
+        # Add initial condition row
+        add_condition_row_in_group()
+
+        # Button to add condition row in the group
+        add_condition_but = ttk.Button(
+            group_frame, text="Add Condition",
+            command=add_condition_row_in_group
+        )
+        add_condition_but.pack(anchor='w', padx=5, pady=5)
+
+        # Store additional group info
+        group['status_var'] = status_var
+
+        # Append to the condition_groups list
+        self.condition_groups.append(group)
+
+    def add_condition_row(self, group):
+        """
+        Adds a new condition row to the specified group.
         Allows selecting any parameter from a dropdown list.
         """
+        # Get the group's condition_rows list
+        condition_rows = group['condition_rows']
+
         # If not the first condition, add a dropdown for logical operator
-        if self.condition_rows:
+        if condition_rows:
             # Operator frame
-            operator_frame = ttk.Frame(self.scrollable_frame)
+            operator_frame = ttk.Frame(group['frame'])
             operator_frame.pack(fill='x', padx=10, pady=5)
 
             operator_label = ttk.Label(operator_frame, text="Operator:")
@@ -338,10 +418,10 @@ class ConfigurationTool:
             operator_dropdown.pack(side='left', padx=10)
 
             # Store operator variable in the last condition
-            self.condition_rows[-1]['operator_var'] = operator_var
+            condition_rows[-1]['operator_var'] = operator_var
 
         # Condition frame
-        row_frame = ttk.Frame(self.scrollable_frame)
+        row_frame = ttk.Frame(group['frame'])
         row_frame.pack(fill='x', padx=10, pady=5)
 
         # Checkbox to enable/disable condition
@@ -354,12 +434,12 @@ class ConfigurationTool:
         param_dropdown = ttk.Combobox(
             row_frame,
             textvariable=param_var,
-            values=self.parameters,  # Assuming self.parameters is a list of available parameters
+            values=self.parameters,
             state='readonly',
             width=15
         )
 
-        if self.parameters:  # Only set current index if parameters are available
+        if self.parameters:  # Only set current index if parameters
             param_dropdown.current(0)  # Set default to first parameter
         else:
             print("No parameters available for the dropdown.")
@@ -389,44 +469,68 @@ class ConfigurationTool:
             'operation_var': operation_var,
             'value': entry,
         }
-        self.condition_rows.append(condition)
-
+        condition_rows.append(condition)
 
     def submit_parameters(self):
         """
-        Collects the selected parameters, their values, and operations.
+        Collects the selected parameters, their values, and operations
+        from all condition groups.
         """
-        selected_params = []
-        for idx, condition in enumerate(self.condition_rows):
-            if condition['selected'].get() == 1:
-                param_name = condition['param_var'].get()
-                operation = condition['operation_var'].get()
-                value = condition['value'].get()
-                operator_var = condition.get('operator_var', None)
-                if not param_name or not operation or not value:
-                    messagebox.showwarning("Input Error", "Please ensure all fields are filled.")
-                    return
-                condition_dict = {
-                    'param': param_name,
-                    'operation': operation,
-                    'value': value,
-                }
-                if idx > 0 and operator_var:
-                    condition_dict['operator'] = operator_var.get()
-                selected_params.append(condition_dict)
+        all_selected_params = []
+        for group in self.condition_groups:
+            group_data = {}
+            status_name = group['status_var'].get()
+            if not status_name:
+                messagebox.showwarning(
+                    "Input Error",
+                    "Please select a machine status for each group."
+                )
+                return
+            group_data['status'] = status_name
+            selected_params = []
+            condition_rows = group['condition_rows']
+            for idx, condition in enumerate(condition_rows):
+                if condition['selected'].get() == 1:
+                    param_name = condition['param_var'].get()
+                    operation = condition['operation_var'].get()
+                    value = condition['value'].get()
+                    operator_var = condition.get('operator_var', None)
+                    if not param_name or not operation or not value:
+                        messagebox.showwarning(
+                            "Input Error",
+                            "Please ensure all fields are filled."
+                        )
+                        return
+                    condition_dict = {
+                        'param': param_name,
+                        'operation': operation,
+                        'value': value,
+                    }
+                    if idx > 0 and operator_var:
+                        condition_dict['operator'] = operator_var.get()
+                    selected_params.append(condition_dict)
+            if not selected_params:
+                messagebox.showwarning(
+                    "No Selection",
+                    "No parameters selected in one of the groups."
+                )
+                return
+            group_data['conditions'] = selected_params
+            all_selected_params.append(group_data)
 
-        if not selected_params:
-            messagebox.showwarning("No Selection", "No parameters selected.")
-            return
-
-        # Process the selected parameters as needed
-        # For example, save to configuration or use in other parts of the application
-        print("Selected Parameters:")
-        for i, cond in enumerate(selected_params):
-            if i > 0 and 'operator' in cond:
-                print(f"{cond['operator']} {cond['param']} {cond['operation']} {cond['value']}")
-            else:
-                print(f"{cond['param']} {cond['operation']} {cond['value']}")
+        # Now process all_selected_params as needed
+        print("All Selected Parameters:")
+        for group_data in all_selected_params:
+            print(f"Machine Status: {group_data['status']}")
+            conditions = group_data['conditions']
+            for i, cond in enumerate(conditions):
+                if i > 0 and 'operator' in cond:
+                    print(f"{cond['operator']} {cond['param']} "
+                          f"{cond['operation']} {cond['value']}")
+                else:
+                    print(f"{cond['param']} {cond['operation']} "
+                          f"{cond['value']}")
+            print("---")
 
         # Integrate the selected parameters into your application logic here
 
@@ -437,13 +541,13 @@ class ConfigurationTool:
         """
         Updates the dropdown list to display the given status name.
 
-        If the status name is None or empty, it will clear the dropdown and set the background to red.
-        If a status is provided, it will stop blinking and set the dropdown to the status.
-
-        Parameters:
-        - status_name (str): The name of the machine status to display in the dropdown.
+        If the status name is None or empty, it will clear the dropdown
+        and set the background to red.
+        If a status is provided, it will stop blinking and set the dropdown
+        to the status.
         """
-        print(f"[DEBUG] Called update_dropdown with status_name: '{status_name}', image_selected: {self.image_selected}")
+        print(f"[DEBUG] Called update_dropdown with status_name: "
+              f"'{status_name}', image_selected: {self.image_selected}")
 
         if status_name:
             # Stop blinking if active and set the dropdown to the status name
@@ -476,7 +580,8 @@ class ConfigurationTool:
             self.selected_img_path = image_data[0]  # Store the image path
             self.load_image(image_data)  # Load the image first
 
-            self.status_info = get_machine_status_from_temp_img_id(self.but_functions.temp_img_id)
+            self.status_info = get_machine_status_from_temp_img_id(
+                self.but_functions.temp_img_id)
             if self.status_info:
                 status_name, _ = self.status_info
                 self.update_dropdown(status_name)  # Update the dropdown with the status name
