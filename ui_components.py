@@ -51,6 +51,9 @@ class ConfigurationTool:
 
         # Set the main window geometry to fit the screen, minus the taskbar
         self.root.geometry(f"{screen_width}x{screen_height - 40}")
+       
+        # Bind the on_closing method to the window close event
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.sidebar_width = 200  # Fixed sidebar width
 
@@ -74,7 +77,14 @@ class ConfigurationTool:
 
         # Create the user interface
         self.create_ui(screen_width, screen_height)
-
+    
+    def on_closing(self):
+        """
+        Handles the window close event.
+        """
+        # You can add any confirmation dialog or cleanup code here
+        if messagebox.askokcancel("Quit", "Do you really wish to quit?"):
+            self.root.destroy()
     def create_ui(self, screen_width, screen_height):
         """
         Creates the user interface components of the application.

@@ -4,6 +4,192 @@ import shutil
 import configparser
 import ast
 
+def load_data(data_input):
+    """
+    Loads data from a JSON file if a file path is provided,
+    or returns the data if it's already a dictionary.
+    """
+    if isinstance(data_input, str):
+        # Assume it's a file path
+        if os.path.isfile(data_input):
+            with open(data_input, 'r', encoding='utf-8') as file:
+                return json.load(file)
+        else:
+            raise FileNotFoundError(f"The file {data_input} does not exist.")
+    elif isinstance(data_input, dict):
+        # Data is already a dictionary
+        return data_input
+    else:
+        raise ValueError("Data must be a dictionary or a valid file path.")
+
+def create_parameter_condition(parameter, operator, value):
+    """
+    Creates a leaf condition for a parameter comparison.
+    :param parameter: The name of the parameter (e.g., 'run').
+    :param operator: The comparison operator (e.g., '=', '!=', '>', '<=').
+    :param value: The value to compare against.
+    :return: A dictionary representing the parameter condition.
+    """
+    return {
+        "parameter": parameter,
+        "operator": operator,
+        "value": value
+    }
+
+def create_logical_condition(operator, operands):
+    """
+    Creates a logical condition that combines multiple conditions.
+    :param operator: The logical operator ('AND' or 'OR').
+    :param operands: A list of conditions (parameter conditions or nested logical conditions).
+    :return: A dictionary representing the logical condition.
+    """
+    return {
+        "operator": operator,
+        "operands": operands
+    }
+
+def create_machine_status_condition(status, conditions):
+    """
+    Creates a machine status condition dictionary.
+    :param status: The status name (e.g., 'Maintenance Required').
+    :param conditions: The conditions dict (created using create_logical_condition or create_parameter_condition).
+    :return: A dictionary representing the machine status condition.
+    """
+    return {
+        "status": status,
+        "conditions": conditions
+    }
+
+
+def add_machine_status_condition(data_input, img_temp_id, new_condition):
+    """
+    Adds a new machine status condition to the specified image if it doesn't already exist,
+    and saves the data back to the JSON file if a file path is provided.
+    """
+    # Load the data
+    data = load_data(data_input)
+ 
+    # Get the image data
+    image = data.get("images", {}).get(str(img_temp_id))
+    if not image:
+        print(f"Error: No data found for image template ID: {img_temp_id}")
+        return data  # Return data unchanged
+
+    # Get or initialize the machine_status_conditions list
+    machine_status_conditions = image.setdefault("machine_status_conditions", [])
+
+    # Append the new condition if it is not already present
+    if new_condition not in machine_status_conditions:
+        machine_status_conditions.append(new_condition)
+    else:
+        print("The condition already exists in the list.")
+
+    # Save the updated data back to the JSON file if data_input is a file path
+    if isinstance(data_input, str):
+        with open(data_input, 'w', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+    else:
+        print("Warning: data_input is not a file path. Changes not saved to file.")
+
+    # Return the updated data
+    return data
+
+
+
+def get_possible_statuses(data_input, img_temp_id):
+    """
+    Returns a list of possible machine statuses for the given image template ID.
+    :param data_input: Dictionary or path to JSON file containing the data.
+    :param img_temp_id: The image template ID (e.g., '40000').
+    :return: List of possible statuses.
+    """
+    data = load_data(data_input)
+    image = data.get("images", {}).get(str(img_temp_id))
+    if not image:
+        print(f"No data found for image template ID: {img_temp_id}")
+        return []
+    
+    machine_status_conditions = image.get("machine_status_conditions")
+    if not machine_status_conditions:
+        # machine_status_conditions does not exist or is empty
+        return []
+    
+    statuses = [condition["status"] for condition in machine_status_conditions]
+    return statuses
+
+
+def remove_machine_status_condition(data_input, img_temp_id, status_name):
+    """
+    Removes a machine status condition from the specified image based on the status name.
+    :param data_input: Dictionary or path to JSON file containing the data.
+    :param img_temp_id: The image template ID from which the condition will be removed.
+    :param status_name: The name of the status to remove.
+    """
+    data = load_data(data_input)
+    image = data.get("images", {}).get(str(img_temp_id))
+    if not image:
+        print(f"No data found for image template ID: {img_temp_id}")
+        return
+    
+    machine_status_conditions = image.get("machine_status_conditions", [])
+    if not machine_status_conditions:
+        print(f"No machine status conditions found for image {img_temp_id}.")
+        return
+
+    original_length = len(machine_status_conditions)
+    machine_status_conditions = [
+        condition for condition in machine_status_conditions
+        if condition["status"] != status_name
+    ]
+    image["machine_status_conditions"] = machine_status_conditions
+
+    if len(machine_status_conditions) < original_length:
+        print(f"Removed condition '{status_name}' from image {img_temp_id}.")
+    else:
+        print(f"No condition with status '{status_name}' found in image {img_temp_id}.")
+
+    return data  # Return the updated data
+
+def update_machine_status_condition(data_input, img_temp_id, status_name, updated_condition):
+    """
+    Updates an existing machine status condition for the specified image.
+    :param data_input: Dictionary or path to JSON file containing the data.
+    :param img_temp_id: The image template ID where the condition will be updated.
+    :param status_name: The name of the status to update.
+    :param updated_condition: A dictionary representing the updated condition.
+    """
+    data = load_data(data_input)
+    image = data.get("images", {}).get(str(img_temp_id))
+    if not image:
+        print(f"No data found for image template ID: {img_temp_id}")
+        return
+
+    machine_status_conditions = image.get("machine_status_conditions", [])
+    for i, condition in enumerate(machine_status_conditions):
+        if condition["status"] == status_name:
+            machine_status_conditions[i] = updated_condition
+            print(f"Updated condition '{status_name}' in image {img_temp_id}.")
+            return data  # Return the updated data
+
+    print(f"No condition with status '{status_name}' found in image {img_temp_id}.")
+    return data  # Return the data unchanged
+
+def list_machine_status_conditions(data_input, img_temp_id):
+    """
+    Lists all machine status conditions for the specified image.
+    :param data_input: Dictionary or path to JSON file containing the data.
+    :param img_temp_id: The image template ID whose conditions will be listed.
+    :return: A list of machine status conditions.
+    """
+    data = load_data(data_input)
+    image = data.get("images", {}).get(str(img_temp_id))
+    if not image:
+        print(f"No data found for image template ID: {img_temp_id}")
+        return []
+    
+    machine_status_conditions = image.get("machine_status_conditions", [])
+    return machine_status_conditions
+
 
 def get_max_image_id(data, image_id_range):
     """
@@ -111,7 +297,7 @@ def copy_and_rename_file(file_path, dst_dir, new_filename):
         print(f"Error copying and renaming file: {e}")
         return None
 
-
+ 
 def check_and_update_json_config_file(file_path):
     """
     Ensures that the JSON configuration file exists and has the correct structure.
@@ -169,3 +355,15 @@ def get_parameters_and_features_by_id(json_file_path, temp_img_id):
     except Exception as e:
         print(f"Error retrieving parameters and features: {e}")
         return {}, {}
+
+
+
+if __name__ == "__main__":
+    print(get_possible_statuses(r'ConfigFiles\mde_config.json','40000'))
+    # Create the new condition
+    operand1 = create_parameter_condition("error_code", "=", "E101")
+    operand2 = create_parameter_condition("run", "!=", "running")
+    conditions = create_logical_condition("AND", [operand1, operand2])
+    new_condition = create_machine_status_condition("Maintenance Required", conditions)
+    #print(f"new_condition:{new_condition}")
+    add_machine_status_condition(r'ConfigFiles\mde_config.json', '40000', new_condition)
