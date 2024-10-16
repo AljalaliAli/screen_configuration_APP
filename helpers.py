@@ -1,8 +1,108 @@
-import json
-import os
+
 import shutil
 import configparser
 import ast
+import json
+import os
+from PIL import Image
+from tkinter import messagebox
+
+
+def load_config_data(config_file_path):
+    """Loads the configuration data from the JSON file."""
+    try:
+        with open(config_file_path, 'r') as file:
+            data = json.load(file)
+        print("[INFO] Configuration data loaded successfully.")
+        return data
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to load configuration: {e}")
+        return {"images": {}}  # Return empty structure on failure
+
+def save_config_data(config_data, config_file_path):
+    """Saves the configuration data back to the JSON file."""
+    try:
+        with open(config_file_path, 'w') as file:
+            json.dump(config_data, file, indent=2)
+            file.flush()
+        print("[INFO] Configuration data saved successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save configuration: {e}")
+
+
+def has_config_changed(config_data, config_file_path):
+    """
+    Determines whether the in-memory configuration differs from the file-based configuration.
+
+    Parameters:
+    - config_data (dict): The in-memory configuration data.
+    - config_file_path (str): The file path to the JSON configuration file.
+
+    Returns:
+    - bool: True if the configurations differ, False otherwise.
+    """
+    try:
+        with open(config_file_path, 'r') as file:
+            file_data = json.load(file)
+    except FileNotFoundError:
+        print(f"Error: The file '{config_file_path}' does not exist.")
+        return True  # If file doesn't exist, consider it as changed
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse JSON file '{config_file_path}'.\n{e}")
+        return True  # If JSON is invalid, consider it as changed
+    except Exception as e:
+        print(f"An unexpected error occurred while reading '{config_file_path}': {e}")
+        return True  # On unexpected errors, consider it as changed
+
+    return config_data != file_data
+
+
+ 
+
+def add_item_to_template(template_id, category, item_data, config_data):
+    """
+    Adds an item to the specified category in the template.
+
+    Parameters:
+    - template_id (str): The ID of the template.
+    - category (str): Either 'parameters' or 'features'.
+    - item_data (dict): The data of the item to be added.
+
+    Returns:
+    - str: The ID of the newly added item.
+    """
+    print(f'//////////////////////////////////template_id={template_id}/////////////////')
+    template = config_data["images"][str(template_id)][category]
+    item_id = str(len(template) + 1)
+    template[item_id] = item_data
+    return item_id
+
+def get_next_template_id(config_data):
+        """Calculates the next available template ID."""
+        if isinstance(config_data, str):
+                with open(config_data, 'r') as file:
+                    config_data = json.load(file)
+
+        if 'images' not in config_data:
+            raise ValueError("The provided input does not contain the 'images' key.")
+
+        items_dict  = config_data['images'] 
+        try:
+            if items_dict:
+                return str(int(max(map(int, items_dict.keys())))+1)
+            else:
+                return "1"
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
+
+def save_template_image(img_path, templates_dir, new_template_id):
+    """Saves the template image to the templates directory."""
+    template_image_name = f"template_{new_template_id}.png"
+    template_image_path = os.path.join(templates_dir, template_image_name)
+    img = Image.open(img_path)
+    img.save(template_image_path)  # Save as PNG
+    return template_image_name
 
 def load_data(data_input):
     """
@@ -191,29 +291,6 @@ def list_machine_status_conditions(data_input, img_temp_id):
     return machine_status_conditions
 
 
-def get_max_image_id(data, image_id_range):
-    """
-    Returns the maximum image ID within the specified range from the configuration data.
-
-    Parameters:
-    - data (dict or str): The configuration data or path to the JSON file.
-    - image_id_range (tuple): A tuple specifying the range of image IDs.
-
-    Returns:
-    - int: The maximum image ID within the range, or None if not found.
-    """
-    if isinstance(data, str):
-        with open(data, 'r') as file:
-            data = json.load(file)
-
-    if 'images' not in data:
-        raise ValueError("The provided input does not contain the 'images' key.")
-
-    image_ids = [int(image_id) for image_id in data['images'].keys()]
-    filtered_ids = [image_id for image_id in image_ids if image_id_range[0] <= image_id <= image_id_range[1]]
-
-    return max(filtered_ids) if filtered_ids else None
-
 
 def get_machine_status_from_temp_img_id(temp_img_id, config_ini_path='config.ini'):
     """
@@ -246,27 +323,6 @@ def get_machine_status_from_temp_img_id(temp_img_id, config_ini_path='config.ini
         if range_start <= temp_img_id <= range_end:
             return (value['name'], key)
     return None
-
-
-def get_last_id(items_dict):
-    """
-    Returns the highest numeric key in the dictionary as a string.
-
-    Parameters:
-    - items_dict (dict): Dictionary of items.
-
-    Returns:
-    - str: The highest key as a string, or "0" if empty.
-    """
-    try:
-        if items_dict:
-            return str(max(map(int, items_dict.keys())))
-        else:
-            return "0"
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
-
 
 def copy_and_rename_file(file_path, dst_dir, new_filename):
     """
@@ -324,39 +380,68 @@ def check_and_update_json_config_file(file_path):
         print(f"Error occurred while processing '{file_path}': {e}")
 
 
-def get_parameters_and_features_by_id(json_file_path, temp_img_id):
+
+def get_parameters_and_features_by_id(config_data, temp_img_id):
     """
     Retrieves parameters and features from the JSON configuration for a given image ID.
 
     Parameters:
-    - json_file_path (str): Path to the JSON configuration file.
+    - config_data (str or dict): 
+        - If `str`, it's treated as the file path to the JSON configuration.
+        - If `dict`, it's treated as the JSON configuration data directly.
     - temp_img_id (int or str): The image ID to retrieve data for.
 
     Returns:
     - tuple: A tuple containing two dictionaries: parameters and features.
+             Returns empty dictionaries if the image ID is not found or an error occurs.
     """
     try:
-        with open(json_file_path, 'r') as file:
-            json_data = json.load(file)
-        
+        # Determine the type of config_data and load data accordingly
+        if isinstance(config_data, str):
+            # config_data is a file path; attempt to open and load JSON data
+            with open(config_data, 'r') as file:
+                json_data = json.load(file)
+        elif isinstance(config_data, dict):
+            # config_data is already a dictionary; use it directly
+            json_data = config_data
+        else:
+            # Invalid type for config_data
+            raise TypeError("config_data must be either a file path (str) or a dictionary (dict).")
+
         parameters = {}
         features = {}
 
-        if str(temp_img_id) in json_data["images"]:
-            image_data = json_data["images"][str(temp_img_id)]
+        # Convert temp_img_id to string to ensure consistency with JSON keys
+        temp_img_id_str = str(temp_img_id)
 
-            if "parameters" in image_data:
+        # Check if 'images' key exists and contains the temp_img_id
+        if "images" in json_data and temp_img_id_str in json_data["images"]:
+            image_data = json_data["images"][temp_img_id_str]
+
+            # Retrieve parameters if available
+            if "parameters" in image_data and isinstance(image_data["parameters"], dict):
                 parameters = image_data["parameters"]
 
-            if "features" in image_data:
+            # Retrieve features if available
+            if "features" in image_data and isinstance(image_data["features"], dict):
                 features = image_data["features"]
+        else:
+            print(f"[WARNING] Image ID '{temp_img_id}' not found in the configuration.")
 
         return parameters, features
-    except Exception as e:
-        print(f"Error retrieving parameters and features: {e}")
+
+    except FileNotFoundError:
+        print(f"[ERROR] The file '{config_data}' was not found.")
         return {}, {}
-
-
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] Failed to decode JSON from '{config_data}': {e}")
+        return {}, {}
+    except TypeError as e:
+        print(f"[ERROR] {e}")
+        return {}, {}
+    except Exception as e:
+        print(f"[ERROR] An unexpected error occurred: {e}")
+        return {}, {}
 
 if __name__ == "__main__":
     print(get_possible_statuses(r'ConfigFiles\mde_config.json','40000'))
@@ -367,3 +452,5 @@ if __name__ == "__main__":
     new_condition = create_machine_status_condition("Maintenance Required", conditions)
     #print(f"new_condition:{new_condition}")
     add_machine_status_condition(r'ConfigFiles\mde_config.json', '40000', new_condition)
+
+    print(f"****************get_last_id(items_dict) = {get_last_id(load_config_data('ConfigFiles\mde_config.json')["images"])}")
