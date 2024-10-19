@@ -56,17 +56,12 @@
                 "parameter": "x",
                 "operator": "=",
                 "value": "*"
-              },
-              {
-                "parameter": "x",
-                "operator": "AND",
-                "value": "0"
               }
             ]
           }
         },
         {
-          "status": "AUS",
+          "status": "Hinweismeldung",
           "conditions": {
             "operator": "AND",
             "operands": [

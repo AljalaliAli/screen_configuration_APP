@@ -20,16 +20,22 @@ def load_config_data(config_file_path):
         return {"images": {}}  # Return empty structure on failure
 
 def save_config_data(config_data, config_file_path):
-    """Saves the configuration data back to the JSON file."""
+    """Saves the configuration data back to the JSON file and returns True if successful, False otherwise."""
     try:
+        print(f"[DEBUG] Attempting to save configuration data to {config_file_path}")
+        print(f"[DEBUG] Configuration data to be saved: {config_data}")
+        
         with open(config_file_path, 'w', encoding='utf-8') as file:
             json.dump(config_data, file, indent=2)
             file.flush()
-        print("[INFO] Configuration data saved successfully.")
+        
+        print(f"[INFO] Configuration data saved successfully to {config_file_path}.")
+        return True
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to save configuration: {e}")
-
-
+        print(f"[ERROR] Failed to save configuration to {config_file_path}. Error: {e}")
+        messagebox.showerror("Error", f"Failed to save configuration to {config_file_path}: {e}")
+        return False
+    
 def has_config_changed(config_data, config_file_path):
     """
     Determines whether the in-memory configuration differs from the file-based configuration.

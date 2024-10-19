@@ -1,3 +1,5 @@
+# ConfigurationTool.py
+
 import os
 import json
 from tkinter import *
@@ -36,7 +38,7 @@ class ConfigurationTool:
         - templates_dir_name (str): Name of the directory containing image templates.
         - choices_dict (dict): Dictionary of choices for machine statuses.
         """
-        
+
         # Initialize configuration paths and data
         self.mde_config_dir = mde_config_dir
         self.mde_config_file_name = mde_config_file_name
@@ -66,9 +68,8 @@ class ConfigurationTool:
         self.style = ttk.Style()
         configure_style(self.style)  # Apply the styles defined in styles.py
 
-        
         self.image_selected = False  # Indicates whether an image is selected
-       
+
         self.resized_img = None
         self.original_image = None
         self.status_info = None
@@ -102,10 +103,45 @@ class ConfigurationTool:
         self.but_functions.config_data = self.config_data  # Share config_data
         self.but_functions.config_data_lock = threading.Lock()
 
-        # Initialize MachineStatusConditionsManager
+        # Define your default machine_status_conditions
+        default_machine_status_conditions = [
+            {
+                'status': 'Produktiv im Automatikbetrieb',
+                'conditions': {
+                    'operator': 'OR',
+                    'operands': [
+                        {'parameter': 'run', 'operator': '=', 'value': '*'},
+                        {'parameter': 'S', 'operator': '>', 'value': '0'}
+                    ]
+                }
+            },
+            {
+                'status': 'Läuft nicht',
+                'conditions': {
+                    'operator': 'OR',
+                    'operands': [
+                        {'parameter': 'run', 'operator': '=', 'value': 'MIN'},
+                        {'parameter': 'run', 'operator': '=', 'value': 'manuell'},
+                        {'parameter': 'temperature', 'operator': '<=', 'value': '50'}
+                    ]
+                }
+            }
+        ]
+
+        # Mock name_to_key if not provided
+        self.name_to_key = {v['name']: k for k, v in choices_dict.items()} if choices_dict else {}
+
+        # Initialize MachineStatusConditionsManager with the callback
         self.machine_status_conditions_manager = MachineStatusConditionsManager(
+            title="Machine Status Conditions Manager",
+            width=800,
+            height=600,
             mde_config_file_path=self.mde_config_file_path,
-            but_functions=self.but_functions,choices_dict =choices_dict
+            but_functions=self.but_functions,
+            choices_dict=self.choices_dict,
+            name_to_key=self.name_to_key,
+            default_conditions=default_machine_status_conditions,
+            on_submit_callback=self.update_possible_machine_status  # Pass the callback
         )
 
         # Now add the sidebar widgets since all dependencies are initialized
@@ -144,7 +180,7 @@ class ConfigurationTool:
         Prompts the user to save the configuration before exiting.
         """
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-        
+
         if not self.image_selected:
             self.root.destroy()
         elif config_changed and not self.machine_status_conditions_manager.is_machine_status_defined:
@@ -159,7 +195,7 @@ class ConfigurationTool:
         elif not config_changed:
             print("[DEBUG] Configuration has not changed. Exiting without saving.")
             self.root.destroy()
-            
+
     def create_ui(self, screen_width, screen_height):
         """
         Creates the user interface components of the application.
@@ -199,7 +235,7 @@ class ConfigurationTool:
         pad_options = {'padx': 10, 'pady': 5}
 
         # Button to select an image
-        select_img_but = Button(self.side_bar, text="Select Image",command=self.select_image)
+        select_img_but = Button(self.side_bar, text="Select Image", command=self.select_image)
         select_img_but.pack(fill=X, **pad_options)
 
         # Button to add a new parameter
@@ -218,7 +254,8 @@ class ConfigurationTool:
         clear_canvas_but.pack(fill=X, **pad_options)
 
         # Button to delete features or parameters
-        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters",command=self.delete_items)
+        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters",
+                                       command=self.delete_items)
         self.delete_items_but.pack(fill=X, **pad_options)
 
         # Reset Button
@@ -243,7 +280,8 @@ class ConfigurationTool:
         separator_status.pack(fill=X, padx=5, pady=10)
 
         # Label for the possible machine status list
-        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status", bg='#000', fg='white')
+        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status",
+                                    bg='#000', fg='white')
         self.dropdown_label.pack(fill=X, padx=5, pady=10)
 
         # List of possible machine statuses (example data, should be set in class)
@@ -628,10 +666,11 @@ class ConfigurationTool:
         _, _, self.machine_status_conditions_manager.machine_status_conditions, _, _ = get_temp_img_details(
             self.mde_config_file_path, self.but_functions.temp_img_id
         )
-        
+
         # Update possible_machine_status based on the fetched machine status conditions
-        self.possible_machine_status = [condition['status'] for condition in self.machine_status_conditions_manager.machine_status_conditions]
-        
+        self.possible_machine_status = [condition['status'] for condition in
+                                        self.machine_status_conditions_manager.machine_status_conditions]
+
         if self.possible_machine_status:
             # The list has elements
             print(f"[info]  The list has the following values: {self.possible_machine_status}")
@@ -640,7 +679,8 @@ class ConfigurationTool:
             # The list is empty
             print("[info] The list is empty")
             self.machine_status_conditions_manager.is_machine_status_defined = False
-                # Clear the current listbox contents
+
+        # Clear the current listbox contents
         self.status_listbox.delete(0, END)
 
         # Insert the new statuses into the Listbox (German characters included)
@@ -650,8 +690,7 @@ class ConfigurationTool:
         # Adjust the Listbox height based on the number of statuses (limit to 5 for display)
         listbox_height = min(len(self.possible_machine_status), 5)
         self.status_listbox.config(height=listbox_height)
-        #####
-     
+
     def reload_config(self):
         """
         Reloads the config.json file after adding a new screen feature or parameter.
@@ -667,3 +706,32 @@ class ConfigurationTool:
         Starts the Tkinter main event loop.
         """
         self.root.mainloop()
+
+
+# Example usage
+if __name__ == "__main__":
+    # Mock choices_dict and name_to_key
+    choices_dict = {
+        'status1': {'name': 'Produktiv im Automatikbetrieb'},
+        'status2': {'name': 'Läuft nicht'}
+    }
+    name_to_key = {
+        'Produktiv im Automatikbetrieb': 'status1',
+        'Läuft nicht': 'status2'
+    }
+
+    # Initialize ConfigurationTool with appropriate paths and dictionaries
+    config_tool = ConfigurationTool(
+        mde_config_dir="path/to/mde_config_dir",
+        mde_config_file_name="mde_config.json",
+        templates_dir_name="templates",
+        choices_dict=choices_dict
+    )
+
+    # Start the Tkinter event loop
+    config_tool.mainloop()
+
+    # After the window is closed, you can access the updated conditions
+    print("Final machine_status_conditions:")
+    print(json.dumps(config_tool.machine_status_conditions_manager.machine_status_conditions, indent=4,
+                     ensure_ascii=False))

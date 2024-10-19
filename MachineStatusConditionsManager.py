@@ -1,3 +1,5 @@
+# MachineStatusConditionsManager.py
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter import Canvas, Frame, Toplevel
@@ -14,7 +16,9 @@ import json
 
 
 class MachineStatusConditionsManager:
-    def __init__(self, title="Machine Status Conditions Manager", width=800, height=600, mde_config_file_path="path/to/config.json", but_functions=None, choices_dict=None, name_to_key=None, default_conditions=None):
+    def __init__(self, title="Machine Status Conditions Manager", width=800, height=600,
+                 mde_config_file_path="path/to/config.json", but_functions=None, choices_dict=None,
+                 name_to_key=None, default_conditions=None, on_submit_callback=None):
         """
         Initializes the Machine Status Conditions Manager window.
 
@@ -26,6 +30,7 @@ class MachineStatusConditionsManager:
         :param choices_dict: Dictionary containing machine status choices.
         :param name_to_key: Dictionary mapping names to keys.
         :param default_conditions: List of default machine status conditions.
+        :param on_submit_callback: A callback function to be called after submitting conditions.
         """
 
         self.title = title
@@ -42,6 +47,9 @@ class MachineStatusConditionsManager:
 
         # Initialize machine_status_conditions with default values if provided
         self.machine_status_conditions = default_conditions if default_conditions else []
+
+        # Store the callback
+        self.on_submit_callback = on_submit_callback
 
     def define_machine_status(self):
         """
@@ -397,11 +405,16 @@ class MachineStatusConditionsManager:
         if not config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
-        # Update `machine_status_conditions`
+        # Update `machine_status_conditions
+        print(f"[info] ")
         config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
 
         # Save the configuration data
-        save_config_data(config_data, self.mde_config_file_path)
+        succesfully=save_config_data(config_data, self.mde_config_file_path)
+        print(f'saving succesfully ={succesfully}')
+        # Call the callback if it's provided
+        if self.on_submit_callback:
+            self.on_submit_callback()
 
         # Close the status_conditions_manager_window
         self.status_conditions_manager_window.destroy()
@@ -470,7 +483,7 @@ if __name__ == "__main__":
         title="Machine Status Conditions Manager",
         width=800,
         height=600,
-        mde_config_file_path=f"ConfigFiles\mde_config.json",
+        mde_config_file_path="ConfigFiles/mde_config.json",
         but_functions=but_functions_object,  # Replace with your actual object
         choices_dict=choices_dict,          # Replace with your actual dictionary
         name_to_key=name_to_key,            # Replace with your actual dictionary
@@ -478,9 +491,8 @@ if __name__ == "__main__":
     )
 
     # To open the define_machine_status window
-    #manager.machine_status_conditions=[]
     manager.define_machine_status()
-    
+
     # Start the Tkinter event loop
     root.mainloop()
 
