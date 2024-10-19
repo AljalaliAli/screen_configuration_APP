@@ -4,14 +4,13 @@ from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import threading
-
-# Assuming ButtonFunctions, configure_style, and
-# get_machine_status_from_temp_img_id are defined elsewhere
+from tkinter import Listbox, END
+from MachineStatusConditionsManager import MachineStatusConditionsManager
 from button_actions import ButtonFunctions  # Ensure this import is correct
 from styles import configure_style
 from helpers import (
     get_machine_status_from_temp_img_id,
-    get_parameters_and_features_by_id,load_config_data, save_config_data, has_config_changed
+    get_temp_img_details, load_config_data, save_config_data, has_config_changed
 )
 
 
@@ -37,13 +36,13 @@ class ConfigurationTool:
         - templates_dir_name (str): Name of the directory containing image templates.
         - choices_dict (dict): Dictionary of choices for machine statuses.
         """
+        
         # Initialize configuration paths and data
         self.mde_config_dir = mde_config_dir
         self.mde_config_file_name = mde_config_file_name
         self.templates_dir_name = templates_dir_name
         self.choices_dict = choices_dict
 
-       
         self.selected_img_path = None  # Store the image path
 
         # Initialize the root window
@@ -67,12 +66,9 @@ class ConfigurationTool:
         self.style = ttk.Style()
         configure_style(self.style)  # Apply the styles defined in styles.py
 
-        # Initialize blinking variables
-        self.blinking = False  # Indicates whether blinking is active
-        self.blink_on = False  # Indicates current blink state
+        
         self.image_selected = False  # Indicates whether an image is selected
-        self.blink_id = None  # Holds the after id for cancelling blinking
-
+       
         self.resized_img = None
         self.original_image = None
         self.status_info = None
@@ -92,7 +88,7 @@ class ConfigurationTool:
         self.mde_config_file_path = os.path.join(mde_config_dir, mde_config_file_name)
         self.config_data = load_config_data(self.mde_config_file_path)
 
-        # Create the user interface
+        # Create the user interface without adding sidebar widgets yet
         self.create_ui(screen_width, screen_height)
 
         # Initialize ButtonFunctions with img_canvas now that it's created
@@ -105,6 +101,15 @@ class ConfigurationTool:
         )
         self.but_functions.config_data = self.config_data  # Share config_data
         self.but_functions.config_data_lock = threading.Lock()
+
+        # Initialize MachineStatusConditionsManager
+        self.machine_status_conditions_manager = MachineStatusConditionsManager(
+            mde_config_file_path=self.mde_config_file_path,
+            but_functions=self.but_functions,choices_dict =choices_dict
+        )
+
+        # Now add the sidebar widgets since all dependencies are initialized
+        self.add_sidebar_widgets()
 
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """
@@ -137,36 +142,24 @@ class ConfigurationTool:
         """
         Handles the window close event.
         Prompts the user to save the configuration before exiting.
-        Checks if the dropdown is empty and initiates blinking if necessary.
         """
-        # Check if the in-memory config_data differs from the config file
-        dropdown_value = self.selected_option.get().strip()
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-        print(f'****************************************config_changed ={config_changed}********************************')
-        print(f'****************************************self.image_selected ={self.image_selected}********************************')
-        print(f'****************************************dropdown_value ={dropdown_value}********************************')
+        
         if not self.image_selected:
             self.root.destroy()
-        elif config_changed and dropdown_value=='':
-
-            print("[DEBUG] Dropdown is empty. Initiating blinking.")
-            self.start_blinking()  # Start the blinking effect
+        elif config_changed and not self.machine_status_conditions_manager.is_machine_status_defined:
             messagebox.showwarning(
                 "Incomplete Configuration",
                 "Please select a machine status before exiting."
             )
-            # Optionally, you can prevent closing by simply returning
-           # return
-
-        elif config_changed and dropdown_value!='':
-            # Configuration has not changed, confirm exit without saving
-            print("[DEBUG] Configuration has changed. save the change.") 
-            save_config_data(self.config_data, self.mde_config_file_path)          
+        elif config_changed and self.machine_status_conditions_manager.is_machine_status_defined:
+            print("[DEBUG] Configuration has changed. Saving the changes.")
+            save_config_data(self.config_data, self.mde_config_file_path)
             self.root.destroy()
-        elif not config_changed :
-            print("[DEBUG] Configuration has changed. Prompting user for confirmation to exit without saving.")          
+        elif not config_changed:
+            print("[DEBUG] Configuration has not changed. Exiting without saving.")
             self.root.destroy()
-
+            
     def create_ui(self, screen_width, screen_height):
         """
         Creates the user interface components of the application.
@@ -197,46 +190,35 @@ class ConfigurationTool:
                               bg='#000')
         self.side_bar.pack(side=RIGHT, fill=Y)
 
-        # Add buttons and dropdown to the sidebar
-        self.add_sidebar_widgets()
-
     def add_sidebar_widgets(self):
         """
         Adds widgets (buttons and dropdowns) to the sidebar.
         """
+
         # Create padding options for widgets in the sidebar
         pad_options = {'padx': 10, 'pady': 5}
 
         # Button to select an image
-        select_img_but = Button(self.side_bar, text="Select Image",
-                                command=self.select_image)
+        select_img_but = Button(self.side_bar, text="Select Image",command=self.select_image)
         select_img_but.pack(fill=X, **pad_options)
 
         # Button to add a new parameter
-        self.add_par_but = Button(self.side_bar, text="Add New Parameter",
-                                  command=self.add_parameter)
+        self.add_par_but = Button(self.side_bar, text="Add New Parameter", command=self.add_parameter)
         self.add_par_but.pack(fill=X, **pad_options)
         self.add_par_but_default_bg = self.add_par_but.cget('bg')
 
         # Button to add screen feature
-        self.add_screen_feature_but = Button(
-            self.side_bar, text="Add Screen Feature",
-            command=self.add_screen_feature
-        )
+        self.add_screen_feature_but = Button(self.side_bar, text="Add Screen Feature", command=self.add_screen_feature)
         self.add_screen_feature_but.pack(fill=X, **pad_options)
         self.add_screen_feature_but_default_bg = \
             self.add_screen_feature_but.cget('bg')
 
         # Button to clear the canvas
-        clear_canvas_but = Button(self.side_bar, text="Clear Canvas",
-                                  command=self.clear_canvas)
+        clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
         clear_canvas_but.pack(fill=X, **pad_options)
 
         # Button to delete features or parameters
-        self.delete_items_but = Button(
-            self.side_bar, text="Delete Features/Parameters",
-            command=self.delete_items
-        )
+        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters",command=self.delete_items)
         self.delete_items_but.pack(fill=X, **pad_options)
 
         # Reset Button
@@ -248,118 +230,37 @@ class ConfigurationTool:
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
 
-        # LabelFrame to hold radio buttons with a title
-        radio_label_frame = LabelFrame(
-            self.side_bar,
-            text="Machine Status from Combination",
-            bg='#000',
-            fg='white',
-            padx=10,
-            pady=10
+        # Define machine status
+        # Now, since machine_status_conditions_manager is initialized, this will work
+        self.define_machine_status = Button(
+            self.side_bar, text="Define Machine Status",
+            command=self.machine_status_conditions_manager.define_machine_status
         )
-        radio_label_frame.pack(fill=X, padx=10, pady=5)
+        self.define_machine_status.pack(fill=X, **pad_options)
 
-        # Variable to hold radio button selection
-        self.status_choice = StringVar(value="No")  # Default to "No"
+        # Separator for machine status labels
+        separator_status = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
+        separator_status.pack(fill=X, padx=5, pady=10)
 
-        # Radiobutton for "Yes"
-        yes_radio = Radiobutton(
-            radio_label_frame,
-            text="Yes",
-            variable=self.status_choice,
-            value="Yes",
-            bg='Black',
-            fg='white',
-            selectcolor='Black',
-            command=self.on_status_choice
-        )
-        yes_radio.pack(anchor='w', pady=2)
+        # Label for the possible machine status list
+        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status", bg='#000', fg='white')
+        self.dropdown_label.pack(fill=X, padx=5, pady=10)
 
-        # Radiobutton for "No"
-        no_radio = Radiobutton(
-            radio_label_frame,
-            text="No",
-            variable=self.status_choice,
-            value="No",
-            bg='Black',
-            fg='white',
-            selectcolor='Black',
-            command=self.on_status_choice
-        )
-        no_radio.pack(anchor='w', pady=2)
+        # List of possible machine statuses (example data, should be set in class)
+        self.possible_machine_status = []
 
-        # Dropdown list (Combobox) for selecting options
-        options_list = [value['name']
-                        for key, value in self.choices_dict.items()]
-        self.name_to_key = {value['name']: key
-                            for key, value in self.choices_dict.items()}
-        self.selected_option = StringVar()
+        # Calculate the height based on the number of statuses (minimum height of 1)
+        listbox_height = min(len(self.possible_machine_status), 5)  # Limit to 5 rows max for better display
 
-        # Create a frame to hold the label and Combobox
-        self.dropdown_frame = Frame(self.side_bar, bg='#000')
-        self.dropdown_frame.pack(fill=X, padx=10, pady=5)
+        # Create a Listbox to display the machine status options with a dynamic height
+        self.status_listbox = Listbox(self.side_bar, height=listbox_height)
 
-        # Create the label for the dropdown inside the frame
-        self.dropdown_label = Label(
-            self.dropdown_frame, text="Select machine status",
-            bg='#000', fg='white'
-        )
-        self.dropdown_label.pack(anchor='w')
+        # Add the statuses to the Listbox
+        for status in self.possible_machine_status:
+            self.status_listbox.insert(END, status)
 
-        # Create dropdown (Combobox) with initial style
-        self.dropdown = ttk.Combobox(
-            self.dropdown_frame,
-            textvariable=self.selected_option,
-            values=options_list,
-            state='readonly',
-            style='Custom.TCombobox'
-        )
-        self.dropdown.pack(fill=X)
-
-        # Bind dropdown selection to a function
-        self.dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
-
-    # ----------------------------------
-    # Event Handlers
-    # ----------------------------------
-    def on_status_choice(self):
-        """
-        Callback method when the radio button selection changes.
-        Handles UI changes based on the selection.
-        """
-        choice = self.status_choice.get()
-        if choice == "Yes":
-            # Hide the dropdown
-            self.dropdown_frame.pack_forget()
-            # Open the parameter selection window
-            self.open_parameter_window()
-        else:
-            # Show the dropdown
-            self.dropdown_frame.pack(fill=X, padx=10, pady=5)
-            # If the parameter window is open, close it
-            if hasattr(self, 'param_window') and \
-                    self.param_window.winfo_exists():
-                self.param_window.destroy()
-
-    def on_option_select(self, event):
-        """
-        Handles the selection from the dropdown list.
-
-        Parameters:
-        - event: The event object from the Combobox selection.
-        """
-        selected_name = self.selected_option.get()
-        selected_key = self.name_to_key.get(selected_name, None)
-
-        if selected_key is not None:
-            # Stop blinking if active
-            if self.blinking:
-                self.stop_blinking()
-        else:
-            # Start blinking if image is selected
-            if self.image_selected and not self.blinking:
-                pass
-                #self.start_blinking()
+        # Pack the Listbox into the sidebar
+        self.status_listbox.pack(fill=X, padx=5, pady=10)
 
     def on_parameter_addition_complete(self):
         """
@@ -390,9 +291,7 @@ class ConfigurationTool:
                 self.but_functions.temp_img_id)
             if self.status_info:
                 status_name, _ = self.status_info
-                self.update_dropdown(status_name)  # Update the dropdown with the status name
-            else:
-                self.update_dropdown('')
+                self.update_possible_machine_status()
         else:
             print("[DEBUG] No image data retrieved.")
 
@@ -444,6 +343,7 @@ class ConfigurationTool:
                     param_color="#00ff00",
                     feature_color="#ff0000"
                 )
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to display image: {e}")
                 print(f"[ERROR] Exception occurred while loading image: {e}")
@@ -462,329 +362,19 @@ class ConfigurationTool:
         Adds a new parameter to the selected image.
         Draws a green rectangle when clicked.
         """
-        # Get the selected key from the dropdown
-        #selected_name = self.selected_option.get()
-        #self.selected_status_key = self.name_to_key.get(selected_name, None)
-
         if hasattr(self, 'original_image') and self.original_image is not None:
             if self.but_functions.temp_img_id != -1:
-               # if self.selected_status_key is not None:
-                    # Change button background to indicate active state
-                    self.add_par_but.config(bg='green')
-                    self.but_functions.add_parameter_threaded(
-                        resize_percent_width=self.resize_percent_width,
-                        resize_percent_height=self.resize_percent_height,
-                        box_color="#00FF00"  # Green color for parameter box
-                    )
-                #else:
-                    # Warn the user if no valid option was selected
-                 #   messagebox.showwarning("No Selection", "Please choose a potential machine status first.")
+                # Change button background to indicate active state
+                self.add_par_but.config(bg='green')
+                self.but_functions.add_parameter_threaded(
+                    resize_percent_width=self.resize_percent_width,
+                    resize_percent_height=self.resize_percent_height,
+                    box_color="#00FF00"  # Green color for parameter box
+                )
             else:
                 messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
         else:
             messagebox.showwarning("No Image", "Please load an image first.")
-
-    def open_parameter_window(self):
-        """
-        Opens a new window to define machine status parameters
-        with conditions.
-        """
-        par_data, _ = get_parameters_and_features_by_id(
-            r'ConfigFiles\mde_config.json', self.but_functions.temp_img_id)
-        self.parameters = [item['name'] for item in par_data.values()]
-
-        # Prevent multiple instances
-        if hasattr(self, 'param_window') and \
-                self.param_window.winfo_exists():
-            self.param_window.lift()
-            return
-
-        self.param_window = Toplevel(self.root)
-        self.param_window.title("Define Machine Status Parameters")
-        self.param_window.geometry("600x400")
-        self.param_window.resizable(False, False)
-
-        # List to keep track of condition groups
-        self.condition_groups = []
-
-        # Scrollable Frame
-        container = ttk.Frame(self.param_window)
-        canvas = Canvas(container)
-        scrollbar = ttk.Scrollbar(container, orient="vertical",
-                                  command=canvas.yview)
-        self.scrollable_frame = ttk.Frame(canvas)
-
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=self.scrollable_frame,
-                             anchor='nw')
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        container.pack(fill="both", expand=True)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Apply a consistent style
-        style = ttk.Style()
-        style.configure('TFrame', background='#f0f0f0')
-        style.configure('TLabel', background='#f0f0f0',
-                        font=('Arial', 10))
-        style.configure('TCheckbutton', background='#f0f0f0',
-                        font=('Arial', 10))
-        style.configure('TEntry', font=('Arial', 10))
-        style.configure('TButton', font=('Arial', 10))
-        style.configure('TCombobox', font=('Arial', 10))
-
-        # Get machine statuses from choices_dict
-        self.machine_statuses = [value['name']
-                                 for key, value in
-                                 self.choices_dict.items()]
-
-        # Add initial condition group
-        self.add_condition_group()
-
-        # Button Frame
-        button_frame = ttk.Frame(self.param_window)
-        button_frame.pack(pady=10)
-
-        # Add Condition Group button
-        add_condition_group_but = ttk.Button(
-            button_frame, text="Add Condition Group",
-            command=self.add_condition_group
-        )
-        add_condition_group_but.pack(side='left', padx=5)
-
-        # Submit Button
-        submit_but = ttk.Button(
-            button_frame, text="Submit",
-            command=self.submit_parameters
-        )
-        submit_but.pack(side='left', padx=5)
-
-    def add_condition_group(self):
-        """
-        Adds a new condition group to the parameter window.
-        Each group allows selecting machine status and adding
-        condition rows connected with logical operators.
-        """
-        group = {}  # Dictionary to store group info
-
-        # Frame for the group using standard Frame to support 'relief' and 'borderwidth'
-        group_frame = Frame(self.scrollable_frame, relief='groove', borderwidth=2)
-        group_frame.pack(fill='x', padx=10, pady=10, ipady=5, ipadx=5)
-
-        # Store group frame before adding condition rows
-        group['frame'] = group_frame
-
-        # Machine status selection
-        status_label = ttk.Label(group_frame, text="Machine Status:")
-        status_label.pack(anchor='w')
-
-        status_var = StringVar()
-        status_dropdown = ttk.Combobox(
-            group_frame,
-            textvariable=status_var,
-            values=self.machine_statuses,
-            state='readonly',
-            width=20
-        )
-        status_dropdown.pack(anchor='w', padx=5, pady=5)
-
-        # Initialize group's condition rows list
-        group['condition_rows'] = []
-
-        # Function to add condition row within this group
-        def add_condition_row_in_group():
-            self.add_condition_row(group)
-
-        # Add initial condition row
-        add_condition_row_in_group()
-
-        # Button to add condition row in the group
-        add_condition_but = ttk.Button(
-            group_frame, text="Add Condition",
-            command=add_condition_row_in_group
-        )
-        add_condition_but.pack(anchor='w', padx=5, pady=5)
-
-        # Store additional group info
-        group['status_var'] = status_var
-
-        # Append to the condition_groups list
-        self.condition_groups.append(group)
-
-    def add_condition_row(self, group):
-        """
-        Adds a new condition row to the specified group.
-        Allows selecting any parameter from a dropdown list.
-        """
-        # Get the group's condition_rows list
-        condition_rows = group['condition_rows']
-
-        # If not the first condition, add a dropdown for logical operator
-        if condition_rows:
-            # Operator frame
-            operator_frame = ttk.Frame(group['frame'])
-            operator_frame.pack(fill='x', padx=10, pady=5)
-
-            operator_label = ttk.Label(operator_frame, text="Operator:")
-            operator_label.pack(side='left')
-
-            operator_var = StringVar()
-            operator_dropdown = ttk.Combobox(
-                operator_frame,
-                textvariable=operator_var,
-                values=["AND", "OR"],
-                state='readonly',
-                width=5
-            )
-            operator_dropdown.current(0)  # Set default to "AND"
-            operator_dropdown.pack(side='left', padx=10)
-
-            # Store operator variable in the last condition
-            condition_rows[-1]['operator_var'] = operator_var
-
-        # Condition frame
-        row_frame = ttk.Frame(group['frame'])
-        row_frame.pack(fill='x', padx=10, pady=5)
-
-        # Checkbox to enable/disable condition
-        var_selected = IntVar(value=1)  # Default to selected
-        chk = ttk.Checkbutton(row_frame, variable=var_selected)
-        chk.pack(side='left', padx=(0, 5))
-
-        # Dropdown for parameter name
-        param_var = StringVar()
-        param_dropdown = ttk.Combobox(
-            row_frame,
-            textvariable=param_var,
-            values=self.parameters,
-            state='readonly',
-            width=15
-        )
-
-        if self.parameters:  # Only set current index if parameters
-            param_dropdown.current(0)  # Set default to first parameter
-        else:
-            print("No parameters available for the dropdown.")
-
-        param_dropdown.pack(side='left', padx=5)
-
-        # Dropdown for operation
-        operation_var = StringVar()
-        operation_dropdown = ttk.Combobox(
-            row_frame,
-            textvariable=operation_var,
-            values=["=", ">", "<", "<=", ">="],
-            state='readonly',
-            width=5
-        )
-        operation_dropdown.current(0)  # Set default to "="
-        operation_dropdown.pack(side='left', padx=5)
-
-        # Entry for parameter value
-        entry = ttk.Entry(row_frame, width=10)
-        entry.pack(side='left', padx=5)
-
-        # Store variables
-        condition = {
-            'selected': var_selected,
-            'param_var': param_var,
-            'operation_var': operation_var,
-            'value': entry,
-        }
-        condition_rows.append(condition)
-
-    def submit_parameters(self):
-        """
-        Collects the selected parameters, their values, and operations
-        from all condition groups.
-        """
-        all_selected_params = []
-        for group in self.condition_groups:
-            group_data = {}
-            status_name = group['status_var'].get()
-            if not status_name:
-                messagebox.showwarning(
-                    "Input Error",
-                    "Please select a machine status for each group."
-                )
-                return
-            group_data['status'] = status_name
-            selected_params = []
-            condition_rows = group['condition_rows']
-            for idx, condition in enumerate(condition_rows):
-                if condition['selected'].get() == 1:
-                    param_name = condition['param_var'].get()
-                    operation = condition['operation_var'].get()
-                    value = condition['value'].get()
-                    operator_var = condition.get('operator_var', None)
-                    if not param_name or not operation or not value:
-                        messagebox.showwarning(
-                            "Input Error",
-                            "Please ensure all fields are filled."
-                        )
-                        return
-                    condition_dict = {
-                        'param': param_name,
-                        'operation': operation,
-                        'value': value,
-                    }
-                    if idx > 0 and operator_var:
-                        condition_dict['operator'] = operator_var.get()
-                    selected_params.append(condition_dict)
-            if not selected_params:
-                messagebox.showwarning(
-                    "No Selection",
-                    "No parameters selected in one of the groups."
-                )
-                return
-            group_data['conditions'] = selected_params
-            all_selected_params.append(group_data)
-
-        # Now process all_selected_params as needed
-        print("All Selected Parameters:")
-        for group_data in all_selected_params:
-            print(f"Machine Status: {group_data['status']}")
-            conditions = group_data['conditions']
-            for i, cond in enumerate(conditions):
-                if i > 0 and 'operator' in cond:
-                    print(f"{cond['operator']} {cond['param']} "
-                          f"{cond['operation']} {cond['value']}")
-                else:
-                    print(f"{cond['param']} {cond['operation']} "
-                          f"{cond['value']}")
-            print("---")
-
-        # Integrate the selected parameters into your application logic here
-        # For example, you might want to store them in config_data
-
-        # Example Integration:
-        with self.but_functions.config_data_lock:
-            for group_data in all_selected_params:
-                status_name = group_data['status']
-                # Find the corresponding key
-                status_key = self.name_to_key.get(status_name)
-                if not status_key:
-                    continue
-                # Assume each status corresponds to a template; you might need to adjust based on your logic
-                # For example, you might map status to a specific template_id
-                # Here, we'll add parameters to the current temp_img_id
-                
-                if self.but_functions.temp_img_id is None:
-                    continue
-                for condition in group_data['conditions']:
-                    param_name = condition['param']
-                    param_pos = {}  # Define how to get position; this is just a placeholder
-                    self.but_functions.add_parameter(template_id, param_name, param_pos)
-
-        # Close the parameter window
-        self.param_window.destroy()
 
     # ----------------------------------
     # Screen Feature Management
@@ -794,26 +384,18 @@ class ConfigurationTool:
         Adds a new screen feature to the selected image.
         Draws a red rectangle when clicked.
         """
-        # Get the selected key from the dropdown
-        selected_name = self.selected_option.get()
-        self.selected_status_key = self.name_to_key.get(selected_name, None)
-
         # Check if an image has been loaded
         if hasattr(self, 'original_image') and self.original_image is not None:
-            #if self.selected_status_key is not None:
-                img_size = {"width": self.original_image.width, "height": self.original_image.height}
-                # Change button background to indicate active state
-                self.add_screen_feature_but.config(bg='green')
-                # Activate drawing with red color for screen features
-                self.but_functions.add_screen_feature_threaded(
-                    img_size=img_size,
-                    resize_percent_width=self.resize_percent_width,
-                    resize_percent_height=self.resize_percent_height,
-                    box_color="#FF0000"  # Red color for feature box
-                )
-        #    else:
-                # Warn the user if no valid option was selected
-              #  messagebox.showwarning("No Selection", "Please choose a potential machine status first")
+            img_size = {"width": self.original_image.width, "height": self.original_image.height}
+            # Change button background to indicate active state
+            self.add_screen_feature_but.config(bg='green')
+            # Activate drawing with red color for screen features
+            self.but_functions.add_screen_feature_threaded(
+                img_size=img_size,
+                resize_percent_width=self.resize_percent_width,
+                resize_percent_height=self.resize_percent_height,
+                box_color="#FF0000"  # Red color for feature box
+            )
         else:
             # Warn the user if no image was loaded
             messagebox.showwarning("No Image", "Please load an image first.")
@@ -955,8 +537,6 @@ class ConfigurationTool:
 
             # Redraw the image to reflect changes
             self.load_image((self.selected_img_path, self.but_functions.temp_img_id))
-            status_name, _ = self.status_info
-            self.update_dropdown(status_name)
 
     def delete_selected_items(self, item_type, item_ids):
         """
@@ -972,7 +552,6 @@ class ConfigurationTool:
                 for item_id in item_ids:
                     if item_id in self.config_data['images'][image_id][item_type]:
                         del self.config_data['images'][image_id][item_type][item_id]
-                print(f"[DEBUG] Deleted {item_type} with IDs {item_ids} from config_data.")
             else:
                 print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 
@@ -1000,7 +579,6 @@ class ConfigurationTool:
             # Delete the image file
             self.delete_image_file()
 
-
             # Clear the canvas and reset variables
             self.clear_canvas()
             self.but_functions.temp_img_id = None
@@ -1008,16 +586,6 @@ class ConfigurationTool:
             self.original_image = None
             self.resized_img = None
             self.image_selected = False
-
-            # Reset the dropdown and radio buttons
-            self.status_choice.set("No")
-            self.dropdown_frame.pack(fill=X, padx=10, pady=5)
-            self.dropdown.set('')
-            self.stop_blinking()
-
-            # If the parameter window is open, close it
-            if hasattr(self, 'param_window') and self.param_window.winfo_exists():
-                self.param_window.destroy()
 
             # Reinitialize the matcher and painter
             self.but_functions.reload_config()
@@ -1032,11 +600,7 @@ class ConfigurationTool:
         with self.but_functions.config_data_lock:
             if image_id in self.config_data['images']:
                 del self.config_data['images'][image_id]
-                #update the mde_config_file content
                 save_config_data(self.config_data, self.mde_config_file_path)
-                print(f"[DEBUG] Template data for image ID {image_id} deleted from config_data.")
-            else:
-                print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 
     def delete_image_file(self):
         """
@@ -1049,95 +613,45 @@ class ConfigurationTool:
 
             if os.path.exists(template_image_path):
                 os.remove(template_image_path)
-                print(f"[DEBUG] Image file {template_image_path} deleted.")
             else:
                 print(f"[DEBUG] Image file {template_image_path} does not exist.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete image file: {e}")
 
-    # ----------------------------------
-    # Blinking Effect Management
-    # ----------------------------------
-    def start_blinking(self):
+    def update_possible_machine_status(self):
         """
-        Starts the blinking effect on the dropdown frame to indicate attention is needed.
+        Fetches machine status options from the configuration file and updates
+        the self.possible_machine_status list and the Listbox.
+        Handles special characters like German umlauts correctly.
         """
-        if not self.blinking:
-            self.blinking = True
-            self.blink_on = False
-            self.blink_frame()
+        # Fetch machine status conditions from the configuration
+        _, _, self.machine_status_conditions_manager.machine_status_conditions, _, _ = get_temp_img_details(
+            self.mde_config_file_path, self.but_functions.temp_img_id
+        )
+        
+        # Update possible_machine_status based on the fetched machine status conditions
+        self.possible_machine_status = [condition['status'] for condition in self.machine_status_conditions_manager.machine_status_conditions]
+        
+        if self.possible_machine_status:
+            # The list has elements
+            print(f"[info]  The list has the following values: {self.possible_machine_status}")
+            self.machine_status_conditions_manager.is_machine_status_defined = True
         else:
-            print("[DEBUG] Blinking is already active.")
+            # The list is empty
+            print("[info] The list is empty")
+            self.machine_status_conditions_manager.is_machine_status_defined = False
+                # Clear the current listbox contents
+        self.status_listbox.delete(0, END)
 
-    def stop_blinking(self):
-        """
-        Stops the blinking effect on the dropdown frame.
-        """
-        if self.blinking:
-            self.blinking = False
-            if self.blink_id is not None:
-                self.root.after_cancel(self.blink_id)
-                self.blink_id = None
-            # Ensure the frame background is set to normal
-            self.dropdown_frame.configure(bg='#000')
-        else:
-            print("[DEBUG] Blinking is not active. No action taken.")
+        # Insert the new statuses into the Listbox (German characters included)
+        for status in self.possible_machine_status:
+            self.status_listbox.insert(END, status)
 
-    def blink_frame(self):
-        """
-        Toggles the background color of the dropdown frame to create a blinking effect.
-        """
-        if self.blinking:
-            if self.blink_on:
-                # Set frame background color to red
-                self.dropdown_frame.configure(bg='red')
-            else:
-                # Set frame background color to normal
-                self.dropdown_frame.configure(bg='#000')
-            self.blink_on = not self.blink_on
-            # Schedule the next blink
-            self.blink_id = self.root.after(500, self.blink_frame)
-
-    # ----------------------------------
-    # Configuration Management
-    # ----------------------------------
-    def update_dropdown(self, status_name):
-        """
-        Updates the dropdown list to display the given status name.
-
-        If the status name is None or empty, it will clear the dropdown
-        and set the background to red.
-        If a status is provided, it will stop blinking and set the dropdown
-        to the status.
-
-        Parameters:
-        - status_name (str): The machine status name to update the dropdown with.
-        """
-        print(f"[DEBUG] Called update_dropdown with status_name: "
-              f"'{status_name}', image_selected: {self.image_selected}")
-
-        if status_name:
-            # Stop blinking if active and set the dropdown to the status name
-            self.stop_blinking()
-            if self.status_choice.get() == "No":
-                self.dropdown.configure(state='normal')  # Change to 'normal' to update
-                self.dropdown.set(status_name)  # Set the dropdown to the status name
-                # Reset to normal style and 'readonly' state
-                self.dropdown.configure(style='Custom.TCombobox', state='readonly')
-        else:
-            # No status found, clear the dropdown and initiate blinking if an image is selected
-            if self.status_choice.get() == "No":
-                self.dropdown.configure(state='normal')  # Change to 'normal' to update
-                self.dropdown.set('')  # Clear the dropdown
-
-                if self.image_selected:
-                    print("[DEBUG] Image is selected and blinking is not active. Starting blinking.")
-                    if not self.blinking:
-                        pass
-                        #self.start_blinking()  # Start the blinking effect if it’s not already active
-                else:
-                    print("[DEBUG] No image selected. Dropdown frame remains normal.")
-
+        # Adjust the Listbox height based on the number of statuses (limit to 5 for display)
+        listbox_height = min(len(self.possible_machine_status), 5)
+        self.status_listbox.config(height=listbox_height)
+        #####
+     
     def reload_config(self):
         """
         Reloads the config.json file after adding a new screen feature or parameter.

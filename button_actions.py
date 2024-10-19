@@ -118,20 +118,11 @@ class ButtonFunctions:
                 # Synchronize with config_tool
                 self.config_tool.temp_img_id = self.temp_img_id
 
-                if self.temp_img_id != -1:
-                    status_info = get_machine_status_from_temp_img_id(self.temp_img_id)
-
-                    if status_info:
-                        status_name, _ = status_info
-                        self.config_tool.update_dropdown(status_name)  # Update dropdown with matched status
-                    else:
-                        self.config_tool.update_dropdown("")  # No valid status, clear the dropdown
-                else:
-                    self.config_tool.update_dropdown("")  # Clear dropdown for a new template
+ 
                 return file_path, self.temp_img_id
 
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to load image: {e}")
+                messagebox.showerror("Error in browse_files", f"Failed to load image: {e}")
         return None
 
     def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
@@ -349,7 +340,7 @@ class ButtonFunctions:
         - img_canvas (Canvas): The canvas to clear.
         - img_item: The image item to keep.
         """
-        self.config_tool.update_dropdown("")  # No valid status, clear the dropdown
+        
         for item in img_canvas.find_all():
             if item != img_item:
                 img_canvas.delete(item)

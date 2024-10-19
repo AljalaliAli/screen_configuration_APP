@@ -1,5 +1,5 @@
 from tkinter import simpledialog
-from helpers import get_parameters_and_features_by_id
+from helpers import get_temp_img_details
 
 class Painter:
     def __init__(self, canvas, config_data):
@@ -99,7 +99,7 @@ class Painter:
         Draws rectangles around parameters and features associated with a specified image ID,
         using different colors for parameters and features.
         """
-        parameters, features = get_parameters_and_features_by_id(self.config_data, temp_img_id)
+        parameters, features, _, _, _ = get_temp_img_details(self.config_data, temp_img_id)
         
         # Draw rectangles for parameters (use param_color)
         for par_id, parameter in parameters.items():
