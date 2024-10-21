@@ -4,7 +4,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter import Canvas, Frame, Toplevel
 from helpers import (
-    load_config_data,
     save_config_data,
     get_temp_img_details,
     add_machine_status_condition,
@@ -43,15 +42,18 @@ class MachineStatusConditionsManager:
         self.condition_groups = []
         self.parameters = []
         self.status_conditions_manager_window = None
-        self.is_machine_status_defined = None
+        self.config_data = None
 
         # Initialize machine_status_conditions with default values if provided
         self.machine_status_conditions = default_conditions if default_conditions else []
 
+        # Initialize is_machine_status_defined
+        self.is_machine_status_defined = False
+
         # Store the callback
         self.on_submit_callback = on_submit_callback
 
-    def define_machine_status(self):
+    def define_machine_status(self, current_config_data):
         """
         Opens a new window to define machine status parameters with conditions.
         Initializes the GUI with default machine_status_conditions if available.
@@ -61,15 +63,19 @@ class MachineStatusConditionsManager:
             messagebox.showerror("Configuration Error", "but_functions is not defined.")
             return
 
-        # Load configuration data using helper function
-        config_data = load_config_data(self.mde_config_file_path)
-        if not config_data:
+        # the current configuration 
+        self.config_data = current_config_data
+        if not self.config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
 
         # Retrieve parameters using helper function
-        parameters, _, _, _, _ = get_temp_img_details(config_data, self.but_functions.temp_img_id)
+        parameters, _, _, _, _ = get_temp_img_details(self.config_data, self.but_functions.temp_img_id)
         self.parameters = [item['name'] for item in parameters.values()]
+        print(f"[DEBUG] Loaded parameters: {self.parameters}")  # Debugging statement
+
+        # Determine if there are parameters
+        self.has_parameters = len(self.parameters) > 0
 
         # Prevent multiple instances
         if self.status_conditions_manager_window and self.status_conditions_manager_window.winfo_exists():
@@ -81,6 +87,29 @@ class MachineStatusConditionsManager:
         self.status_conditions_manager_window.geometry(f"{self.width}x{self.height}")
         self.status_conditions_manager_window.resizable(True, True)
 
+        # Apply a consistent style
+        style = ttk.Style()
+        style.configure('TFrame', background='#f0f0f0')
+        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TCheckbutton', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TEntry', font=('Arial', 10))
+        style.configure('TButton', font=('Arial', 10))
+        style.configure('TCombobox', font=('Arial', 10))
+
+        # Get machine statuses from choices_dict
+        self.machine_statuses = [value['name'] for key, value in self.choices_dict.items()]
+
+        if self.has_parameters:
+            # Existing complex UI with condition groups
+            self.setup_complex_ui()
+        else:
+            # Simplified UI with only machine status dropdown and submit button
+            self.setup_simplified_ui()
+
+    def setup_complex_ui(self):
+        """
+        Sets up the complex UI with condition groups when parameters are available.
+        """
         # List to keep track of condition groups
         self.condition_groups = []
 
@@ -103,18 +132,6 @@ class MachineStatusConditionsManager:
         container.pack(fill="both", expand=True)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-
-        # Apply a consistent style
-        style = ttk.Style()
-        style.configure('TFrame', background='#f0f0f0')
-        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
-        style.configure('TCheckbutton', background='#f0f0f0', font=('Arial', 10))
-        style.configure('TEntry', font=('Arial', 10))
-        style.configure('TButton', font=('Arial', 10))
-        style.configure('TCombobox', font=('Arial', 10))
-
-        # Get machine statuses from choices_dict
-        self.machine_statuses = [value['name'] for key, value in self.choices_dict.items()]
 
         # If there are default conditions, load them; otherwise, add an empty condition group
         if self.machine_status_conditions:
@@ -140,6 +157,37 @@ class MachineStatusConditionsManager:
             command=self.submit_status_conditions
         )
         submit_btn.pack(side='left', padx=5)
+
+    def setup_simplified_ui(self):
+        """
+        Sets up the simplified UI with only machine status dropdown and submit button when no parameters are available.
+        """
+        # Frame for simplified UI
+        simplified_frame = ttk.Frame(self.status_conditions_manager_window, padding=20)
+        simplified_frame.pack(fill='both', expand=True)
+
+        # Machine Status selection
+        status_label = ttk.Label(simplified_frame, text="Machine Status:")
+        status_label.pack(anchor='w', pady=(0, 5))
+
+        self.simple_selected_status = tk.StringVar()
+        machine_status_dropdown = ttk.Combobox(
+            simplified_frame,
+            textvariable=self.simple_selected_status,
+            values=self.machine_statuses,
+            state='readonly',
+            style='Custom.TCombobox'
+        )
+        machine_status_dropdown.pack(fill='x', padx=5, pady=5)
+        if self.machine_statuses:
+            machine_status_dropdown.current(0)
+
+        # Submit Button
+        submit_btn = ttk.Button(
+            simplified_frame, text="Submit",
+            command=self.submit_simple_status_conditions
+        )
+        submit_btn.pack(pady=10)
 
     def add_condition_group(self, initial_data=None):
         """
@@ -190,7 +238,7 @@ class MachineStatusConditionsManager:
             # Add each condition to the group
             for condition in conditions:
                 param = condition.get('parameter', '')
-                operator = condition.get('operator', '=')
+                operator = condition.get('operator', 'AND')  # Default to 'AND' if not provided
                 value = condition.get('value', '')
                 self.add_condition_row(group, param, operator, value)
 
@@ -221,6 +269,10 @@ class MachineStatusConditionsManager:
         :param operation: The operation symbol.
         :param value: The value for the parameter.
         """
+        if not self.parameters:
+            messagebox.showerror("Configuration Error", "No parameters available. Please check the configuration.")
+            return
+
         # Condition frame
         row_frame = ttk.Frame(group['frame'])
         row_frame.pack(fill='x', padx=10, pady=2)
@@ -256,6 +308,10 @@ class MachineStatusConditionsManager:
                 param_dropdown.current(0)  # Default to first parameter if not found
         elif self.parameters:
             param_dropdown.current(0)  # Set default to first parameter
+        else:
+            messagebox.showerror("Configuration Error", "No parameters available to select.")
+            return
+
         param_dropdown.pack(side='left', padx=5)
 
         # Dropdown for operation
@@ -401,17 +457,57 @@ class MachineStatusConditionsManager:
         print(json.dumps(self.machine_status_conditions, indent=4, ensure_ascii=False))
 
         # Save the updated conditions using helper function
-        config_data = load_config_data(self.mde_config_file_path)
-        if not config_data:
+
+        if not self.config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
-        # Update `machine_status_conditions
-        print(f"[info] ")
-        config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
+        # Update `machine_status_conditions`
+        self.config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
 
         # Save the configuration data
-        succesfully=save_config_data(config_data, self.mde_config_file_path)
-        print(f'saving succesfully ={succesfully}')
+        successfully = save_config_data(self.config_data, self.mde_config_file_path)
+        print(f'#####################################################saving successfully ={successfully}#######################################')
+        print(f"self.mde_config_file_path............:{self.mde_config_file_path}")
+        print(f"self.config_data............: {self.config_data}")
+
+        if successfully:
+            # Set is_machine_status_defined to True after successful save
+            self.is_machine_status_defined = True
+
+        # Call the callback if it's provided
+        if self.on_submit_callback:
+            self.on_submit_callback()
+
+        # Close the status_conditions_manager_window
+        self.status_conditions_manager_window.destroy()
+
+    def submit_simple_status_conditions(self):
+        """
+        Handles the submission when there are no parameters.
+        Sets machine_status_conditions to an empty list.
+        """
+        # Retrieve the selected status if needed
+        selected_status = self.simple_selected_status.get()
+        print(f"Selected Machine Status: {selected_status}")
+
+        # Set machine_status_conditions to empty list
+        self.machine_status_conditions = [{"status": selected_status}]
+          
+
+        # Update the machine_status_conditions in config_data
+        if self.config_data:
+            self.config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
+
+            # Save the configuration data
+            successfully = save_config_data(self.config_data, self.mde_config_file_path)
+            print(f'#####################################################saving successfully ={successfully}#######################################')
+            print(f"self.mde_config_file_path............:{self.mde_config_file_path}")
+            print(f"self.config_data............: {self.config_data}")
+
+            if successfully:
+                # Set is_machine_status_defined to True after successful save
+                self.is_machine_status_defined = True
+
         # Call the callback if it's provided
         if self.on_submit_callback:
             self.on_submit_callback()
@@ -491,7 +587,15 @@ if __name__ == "__main__":
     )
 
     # To open the define_machine_status window
-    manager.define_machine_status()
+    # Assume current_config_data is provided; here we mock it with default conditions
+    current_config_data = {
+        "images": {
+            "1": {
+                "machine_status_conditions": default_machine_status_conditions
+            }
+        }
+    }
+    manager.define_machine_status(current_config_data)
 
     # Start the Tkinter event loop
     root.mainloop()
@@ -499,3 +603,4 @@ if __name__ == "__main__":
     # After the window is closed, you can access the updated conditions
     print("Final machine_status_conditions:")
     print(json.dumps(manager.machine_status_conditions, indent=4, ensure_ascii=False))
+    print(f"Is machine status defined: {manager.is_machine_status_defined}")

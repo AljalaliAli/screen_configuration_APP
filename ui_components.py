@@ -104,29 +104,7 @@ class ConfigurationTool:
         self.but_functions.config_data_lock = threading.Lock()
 
         # Define your default machine_status_conditions
-        default_machine_status_conditions = [
-            {
-                'status': 'Produktiv im Automatikbetrieb',
-                'conditions': {
-                    'operator': 'OR',
-                    'operands': [
-                        {'parameter': 'run', 'operator': '=', 'value': '*'},
-                        {'parameter': 'S', 'operator': '>', 'value': '0'}
-                    ]
-                }
-            },
-            {
-                'status': 'Läuft nicht',
-                'conditions': {
-                    'operator': 'OR',
-                    'operands': [
-                        {'parameter': 'run', 'operator': '=', 'value': 'MIN'},
-                        {'parameter': 'run', 'operator': '=', 'value': 'manuell'},
-                        {'parameter': 'temperature', 'operator': '<=', 'value': '50'}
-                    ]
-                }
-            }
-        ]
+        default_machine_status_conditions = None
 
         # Mock name_to_key if not provided
         self.name_to_key = {v['name']: k for k, v in choices_dict.items()} if choices_dict else {}
@@ -184,6 +162,7 @@ class ConfigurationTool:
         if not self.image_selected:
             self.root.destroy()
         elif config_changed and not self.machine_status_conditions_manager.is_machine_status_defined:
+            print(f"#####################>>>>>>>>{config_changed} and not {self.machine_status_conditions_manager.is_machine_status_defined}")
             messagebox.showwarning(
                 "Incomplete Configuration",
                 "Please select a machine status before exiting."
@@ -271,7 +250,7 @@ class ConfigurationTool:
         # Now, since machine_status_conditions_manager is initialized, this will work
         self.define_machine_status = Button(
             self.side_bar, text="Define Machine Status",
-            command=self.machine_status_conditions_manager.define_machine_status
+            command= lambda: self.machine_status_conditions_manager.define_machine_status(self.config_data)
         )
         self.define_machine_status.pack(fill=X, **pad_options)
 
