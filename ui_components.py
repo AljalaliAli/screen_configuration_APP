@@ -225,21 +225,18 @@ class ConfigurationTool:
         # Button to add screen feature
         self.add_screen_feature_but = Button(self.side_bar, text="Add Screen Feature", command=self.add_screen_feature)
         self.add_screen_feature_but.pack(fill=X, **pad_options)
-        self.add_screen_feature_but_default_bg = \
-            self.add_screen_feature_but.cget('bg')
+        self.add_screen_feature_but_default_bg = self.add_screen_feature_but.cget('bg')
 
         # Button to clear the canvas
         clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
         clear_canvas_but.pack(fill=X, **pad_options)
 
         # Button to delete features or parameters
-        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters",
-                                       command=self.delete_items)
+        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters", command=self.delete_items)
         self.delete_items_but.pack(fill=X, **pad_options)
 
         # Reset Button
-        self.reset_but = Button(self.side_bar, text="Reset Template",
-                                command=self.reset_template)
+        self.reset_but = Button(self.side_bar, text="Reset Template", command=self.reset_template)
         self.reset_but.pack(fill=X, **pad_options)
 
         # Separator
@@ -247,10 +244,9 @@ class ConfigurationTool:
         separator.pack(fill=X, padx=5, pady=10)
 
         # Define machine status
-        # Now, since machine_status_conditions_manager is initialized, this will work
         self.define_machine_status = Button(
             self.side_bar, text="Define Machine Status",
-            command= lambda: self.machine_status_conditions_manager.define_machine_status(self.config_data)
+            command=lambda: self.machine_status_conditions_manager.define_machine_status(self.config_data)
         )
         self.define_machine_status.pack(fill=X, **pad_options)
 
@@ -258,26 +254,16 @@ class ConfigurationTool:
         separator_status = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator_status.pack(fill=X, padx=5, pady=10)
 
-        # Label for the possible machine status list
-        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status",
-                                    bg='#000', fg='white')
+        # Label for the possible machine status list (Initially hidden)
+        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status", bg='#000', fg='white')
         self.dropdown_label.pack(fill=X, padx=5, pady=10)
+        self.dropdown_label.pack_forget()  # Hide initially
 
-        # List of possible machine statuses (example data, should be set in class)
-        self.possible_machine_status = []
-
-        # Calculate the height based on the number of statuses (minimum height of 1)
-        listbox_height = min(len(self.possible_machine_status), 5)  # Limit to 5 rows max for better display
-
-        # Create a Listbox to display the machine status options with a dynamic height
-        self.status_listbox = Listbox(self.side_bar, height=listbox_height)
-
-        # Add the statuses to the Listbox
-        for status in self.possible_machine_status:
-            self.status_listbox.insert(END, status)
-
-        # Pack the Listbox into the sidebar
+        # Create a Listbox to display the machine status options
+        self.status_listbox = Listbox(self.side_bar, height=5)
         self.status_listbox.pack(fill=X, padx=5, pady=10)
+        self.status_listbox.pack_forget()  # Hide initially
+
 
     def on_parameter_addition_complete(self):
         """
@@ -651,25 +637,25 @@ class ConfigurationTool:
                                         self.machine_status_conditions_manager.machine_status_conditions]
 
         if self.possible_machine_status:
-            # The list has elements
-            print(f"[info]  The list has the following values: {self.possible_machine_status}")
-            self.machine_status_conditions_manager.is_machine_status_defined = True
+            # The list has elements, show the label and listbox
+            self.dropdown_label.pack(fill=X, padx=5, pady=10)
+            self.status_listbox.pack(fill=X, padx=5, pady=10)
+
+            # Clear the current listbox contents
+            self.status_listbox.delete(0, END)
+
+            # Insert the new statuses into the Listbox (German characters included)
+            for status in self.possible_machine_status:
+                self.status_listbox.insert(END, status)
+
+            # Adjust the Listbox height based on the number of statuses (limit to 5 for display)
+            listbox_height = min(len(self.possible_machine_status), 5)
+            self.status_listbox.config(height=listbox_height)
         else:
-            # The list is empty
-            print("[info] The list is empty")
-            self.machine_status_conditions_manager.is_machine_status_defined = False
-
-        # Clear the current listbox contents
-        self.status_listbox.delete(0, END)
-
-        # Insert the new statuses into the Listbox (German characters included)
-        for status in self.possible_machine_status:
-            self.status_listbox.insert(END, status)
-
-        # Adjust the Listbox height based on the number of statuses (limit to 5 for display)
-        listbox_height = min(len(self.possible_machine_status), 5)
-        self.status_listbox.config(height=listbox_height)
-
+            # The list is empty, hide the label and listbox
+            self.dropdown_label.pack_forget()
+            self.status_listbox.pack_forget()
+  
     def reload_config(self):
         """
         Reloads the config.json file after adding a new screen feature or parameter.
