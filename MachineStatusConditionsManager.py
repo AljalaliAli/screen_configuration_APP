@@ -1,8 +1,6 @@
-# MachineStatusConditionsManager.py
-
 import tkinter as tk
 from tkinter import ttk, messagebox
-from tkinter import Canvas, Frame, Toplevel
+from tkinter import Canvas, Toplevel
 from helpers import (
     save_config_data,
     get_temp_img_details,
@@ -12,6 +10,7 @@ from helpers import (
     list_machine_status_conditions
 )
 import json
+import colorsys  # Import colorsys for color generation
 
 
 class MachineStatusConditionsManager:
@@ -20,18 +19,7 @@ class MachineStatusConditionsManager:
                  name_to_key=None, default_conditions=None, on_submit_callback=None):
         """
         Initializes the Machine Status Conditions Manager window.
-
-        :param title: The title of the window.
-        :param width: The width of the window in pixels.
-        :param height: The height of the window in pixels.
-        :param mde_config_file_path: Path to the configuration JSON file.
-        :param but_functions: Object containing functions and data locks.
-        :param choices_dict: Dictionary containing machine status choices.
-        :param name_to_key: Dictionary mapping names to keys.
-        :param default_conditions: List of default machine status conditions.
-        :param on_submit_callback: A callback function to be called after submitting conditions.
         """
-
         self.title = title
         self.width = width
         self.height = height
@@ -63,7 +51,7 @@ class MachineStatusConditionsManager:
             messagebox.showerror("Configuration Error", "but_functions is not defined.")
             return
 
-        # the current configuration 
+        # The current configuration
         self.config_data = current_config_data
         if not self.config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
@@ -89,12 +77,16 @@ class MachineStatusConditionsManager:
 
         # Apply a consistent style
         style = ttk.Style()
-        style.configure('TFrame', background='#f0f0f0')
-        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
-        style.configure('TCheckbutton', background='#f0f0f0', font=('Arial', 10))
+        style.theme_use('clam')  # Use 'clam' theme for modern look
+
+        # Define custom styles
+        style.configure('MainFrame.TFrame', background='#2c3e50')
+        style.configure('ConditionFrame.TFrame', background='#3b5998')
+        style.configure('TLabel', background='#34495e', foreground='#ecf0f1', font=('Arial', 10))
         style.configure('TEntry', font=('Arial', 10))
         style.configure('TButton', font=('Arial', 10))
         style.configure('TCombobox', font=('Arial', 10))
+        style.map('TButton', background=[('active', '#3498db')], foreground=[('active', '#ecf0f1')])
 
         # Get machine statuses from choices_dict
         self.machine_statuses = [value['name'] for key, value in self.choices_dict.items()]
@@ -113,11 +105,15 @@ class MachineStatusConditionsManager:
         # List to keep track of condition groups
         self.condition_groups = []
 
+        # Main frame with custom style
+        main_frame = ttk.Frame(self.status_conditions_manager_window, style='MainFrame.TFrame')
+        main_frame.pack(fill='both', expand=True)
+
         # Scrollable Frame Setup
-        container = ttk.Frame(self.status_conditions_manager_window)
-        canvas = Canvas(container)
+        container = ttk.Frame(main_frame)
+        canvas = Canvas(container, background='#2c3e50', highlightthickness=0)
         scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
-        self.scrollable_frame = ttk.Frame(canvas)
+        self.scrollable_frame = ttk.Frame(canvas, style='MainFrame.TFrame')
 
         self.scrollable_frame.bind(
             "<Configure>",
@@ -136,18 +132,18 @@ class MachineStatusConditionsManager:
         # If there are default conditions, load them; otherwise, add an empty condition group
         if self.machine_status_conditions:
             for condition_group in self.machine_status_conditions:
-                self.add_condition_group(initial_data=condition_group)
+                self.add_condition_group(initial_data=condition_group, level=0)
         else:
-            self.add_condition_group()
+            self.add_condition_group(level=0)
 
         # Button Frame
-        button_frame = ttk.Frame(self.status_conditions_manager_window)
+        button_frame = ttk.Frame(main_frame, style='MainFrame.TFrame')
         button_frame.pack(pady=10)
 
         # Add Condition Group button
         add_condition_group_btn = ttk.Button(
             button_frame, text="Add Condition Group",
-            command=lambda: self.add_condition_group()
+            command=lambda: self.add_condition_group(level=0)
         )
         add_condition_group_btn.pack(side='left', padx=5)
 
@@ -162,12 +158,12 @@ class MachineStatusConditionsManager:
         """
         Sets up the simplified UI with only machine status dropdown and submit button when no parameters are available.
         """
-        # Frame for simplified UI
-        simplified_frame = ttk.Frame(self.status_conditions_manager_window, padding=20)
+        # Frame for simplified UI with custom style
+        simplified_frame = ttk.Frame(self.status_conditions_manager_window, padding=20, style='MainFrame.TFrame')
         simplified_frame.pack(fill='both', expand=True)
 
         # Machine Status selection
-        status_label = ttk.Label(simplified_frame, text="Machine Status:")
+        status_label = ttk.Label(simplified_frame, text="Machine Status:", background='#2c3e50', foreground='#ecf0f1')
         status_label.pack(anchor='w', pady=(0, 5))
 
         self.simple_selected_status = tk.StringVar()
@@ -175,8 +171,7 @@ class MachineStatusConditionsManager:
             simplified_frame,
             textvariable=self.simple_selected_status,
             values=self.machine_statuses,
-            state='readonly',
-            style='Custom.TCombobox'
+            state='readonly'
         )
         machine_status_dropdown.pack(fill='x', padx=5, pady=5)
         if self.machine_statuses:
@@ -189,84 +184,194 @@ class MachineStatusConditionsManager:
         )
         submit_btn.pack(pady=10)
 
-    def add_condition_group(self, initial_data=None):
+    def get_color_by_level(self, level):
         """
-        Adds a new condition group to the status_conditions_manager_window.
+        Generates a background color based on the nesting level.
+        """
+        # For the root group (level 0), return a color similar to the window's background
+        if level == 0:
+            return '#2c3e50'  # Same as the main frame background
+        else:
+            # Generate a color in HSV space and convert to RGB
+            hue = (level * 0.15) % 1  # Adjust the multiplier to change the rate of hue change
+            saturation = 0.6
+            value = 0.9
+            rgb = colorsys.hsv_to_rgb(hue, saturation, value)
+            # Convert RGB to hex
+            rgb = tuple(int(255 * x) for x in rgb)
+            return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+    def add_condition_group(self, initial_data=None, parent_frame=None, is_root=True, level=0):
+        """
+        Adds a new condition group to the UI.
         If initial_data is provided, populates the group with existing conditions.
 
         :param initial_data: Dictionary containing 'status' and 'conditions'.
+        :param parent_frame: The parent frame to which this group belongs.
+        :param is_root: Boolean indicating if this is a root condition group.
+        :param level: Integer representing the nesting level.
         """
         group = {}  # Dictionary to store group info
 
-        # Frame for the group using standard Frame to support 'relief' and 'borderwidth'
-        group_frame = Frame(self.scrollable_frame, relief='groove', borderwidth=2)
+        if parent_frame is None:
+            parent_frame = self.scrollable_frame
+
+        # Generate a color based on the nesting level
+        bg_color = self.get_color_by_level(level)
+
+        # Frame for the group using tk.Frame
+        group_frame = tk.Frame(parent_frame, relief='groove', borderwidth=2, bg=bg_color)
         group_frame.pack(fill='x', padx=10, pady=10, ipady=5, ipadx=5)
 
         # Store group frame before adding condition rows
         group['frame'] = group_frame
+        group['nested_groups'] = []
 
-        # Machine status selection
-        status_label = ttk.Label(group_frame, text="Machine Status:")
-        status_label.pack(anchor='w')
+        # Logic Operator selection (not for root groups)
+        if not is_root:
+            logic_operator_var = tk.StringVar(value='AND')
+            logic_operator_dropdown = ttk.Combobox(
+                group_frame,
+                textvariable=logic_operator_var,
+                values=["AND", "OR"],
+                state='readonly',
+                width=5
+            )
+            logic_operator_dropdown.pack(anchor='w', padx=5, pady=5)
+            group['logic_operator_var'] = logic_operator_var
 
-        selected_option = tk.StringVar()
-        machine_status_dropdown = ttk.Combobox(
-            group_frame,
-            textvariable=selected_option,
-            values=self.machine_statuses,
-            state='readonly',
-            style='Custom.TCombobox'
-        )
-        machine_status_dropdown.pack(fill='x', padx=5, pady=5)
-        machine_status_dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
+        # Machine status selection (only for root groups)
+        if is_root:
+            status_label = ttk.Label(group_frame, text="Machine Status:", background=bg_color)
+            status_label.pack(anchor='w', padx=5, pady=5)
+
+            selected_option = tk.StringVar()
+            machine_status_dropdown = ttk.Combobox(
+                group_frame,
+                textvariable=selected_option,
+                values=self.machine_statuses,
+                state='readonly'
+            )
+            machine_status_dropdown.pack(fill='x', padx=5, pady=5)
+            machine_status_dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
+            group['status_var'] = selected_option
 
         # Initialize group's condition rows list
         group['condition_rows'] = []
 
+        # Container for buttons at the bottom
+        button_container = tk.Frame(group_frame, bg=bg_color)
+        button_container.pack(side='bottom', pady=5)
+
+        # Button to add condition row in the group
+        add_condition_btn = ttk.Button(
+            button_container, text="Add Condition",
+            command=lambda: add_condition_row_in_group()
+        )
+        add_condition_btn.pack(side='left', padx=5)
+
+        # Button to add nested condition group
+        add_nested_group_btn = ttk.Button(
+            button_container, text="Add Nested Group",
+            command=lambda: add_nested_group()
+        )
+        add_nested_group_btn.pack(side='left', padx=5)
+
+        # Button to delete this entire condition group
+        if not is_root:
+            delete_group_btn = ttk.Button(
+                button_container, text="Delete Group",
+                command=lambda: self.remove_condition_group(group)
+            )
+            delete_group_btn.pack(side='left', padx=5)
+
         # Function to add condition row within this group
         def add_condition_row_in_group():
             self.add_condition_row(group)
+            # Ensure buttons remain at the bottom after adding a condition
+            button_container.pack_forget()
+            button_container.pack(side='bottom', pady=5)
+
+        # Function to add nested group within this group
+        def add_nested_group():
+            nested_group = self.add_condition_group(
+                parent_frame=group_frame,
+                is_root=False,
+                level=level + 1
+            )
+            group['nested_groups'].append(nested_group)
+            # Ensure buttons remain at the bottom after adding a group
+            button_container.pack_forget()
+            button_container.pack(side='bottom', pady=5)
 
         # Add initial condition rows from initial_data if provided
         if initial_data:
-            status_name = initial_data.get('status', '')
-            selected_option.set(status_name)
+            if is_root:
+                status_name = initial_data.get('status', '')
+                group['status_var'].set(status_name)
+                conditions = initial_data.get('conditions', {})
+            else:
+                conditions = initial_data
 
-            conditions = initial_data.get('conditions', {}).get('operands', [])
-            main_operator = initial_data.get('conditions', {}).get('operator', 'AND').upper()
+            # Get the logic operator for this group
+            logic_operator = conditions.get('logic_operator', 'AND').upper()
+            if not is_root:
+                group['logic_operator_var'].set(logic_operator)
 
-            # Add each condition to the group
-            for condition in conditions:
-                param = condition.get('parameter', '')
-                operator = condition.get('operator', 'AND')  # Default to 'AND' if not provided
-                value = condition.get('value', '')
-                self.add_condition_row(group, param, operator, value)
+            operands = conditions.get('operands', [])
 
+            for operand in operands:
+                if 'operands' in operand:
+                    # Nested condition group
+                    nested_group = self.add_condition_group(
+                        initial_data=operand,
+                        parent_frame=group_frame,
+                        is_root=False,
+                        level=level + 1
+                    )
+                    group['nested_groups'].append(nested_group)
+                else:
+                    # Simple condition
+                    param = operand.get('parameter', '')
+                    comparison_operator = operand.get('comparison_operator', '=')
+                    value = operand.get('value', '')
+                    self.add_condition_row(group, param, comparison_operator, value)
         else:
             # Add initial condition row
             add_condition_row_in_group()
 
-        # Button to add condition row in the group
-        add_condition_btn = ttk.Button(
-            group_frame, text="Add Condition",
-            command=add_condition_row_in_group
-        )
-        add_condition_btn.pack(anchor='w', padx=5, pady=5)
-
-        # Store additional group info
-        group['status_var'] = selected_option
-
         # Append to the condition_groups list
-        self.condition_groups.append(group)
+        if is_root:
+            self.condition_groups.append(group)
 
-    def add_condition_row(self, group, param='', operation='=', value=''):
+        return group  # Return the group for tracking nested groups
+
+    def remove_condition_group(self, group):
+        """
+        Removes an entire condition group after confirmation.
+
+        :param group: The condition group to remove.
+        """
+        confirm = messagebox.askyesno(
+            "Confirm Remove",
+            "Are you sure you want to remove this entire group?",
+            parent=self.status_conditions_manager_window
+        )
+        if confirm:
+            # Destroy the group frame
+            group['frame'].destroy()
+            # Remove the group from the condition_groups list if it's a root group
+            if group in self.condition_groups:
+                self.condition_groups.remove(group)
+
+    def add_condition_row(self, group, param='', comparison_operator='=', value=''):
         """
         Adds a new condition row to the specified group.
-        If param, operation, or value are provided, initializes the row with these values.
+        If param, comparison_operator, or value are provided, initializes the row with these values.
 
         :param group: The condition group to which the row is added.
         :param param: The parameter name.
-        :param operation: The operation symbol.
+        :param comparison_operator: The comparison operator symbol.
         :param value: The value for the parameter.
         """
         if not self.parameters:
@@ -277,19 +382,19 @@ class MachineStatusConditionsManager:
         row_frame = ttk.Frame(group['frame'])
         row_frame.pack(fill='x', padx=10, pady=2)
 
-        # Dropdown for logical operator if not the first condition
+        # Logic operator (if not the first condition)
         if group['condition_rows']:
-            operator_var = tk.StringVar(value='AND')
-            operator_dropdown = ttk.Combobox(
+            logic_operator_var = tk.StringVar(value='AND')
+            logic_operator_dropdown = ttk.Combobox(
                 row_frame,
-                textvariable=operator_var,
+                textvariable=logic_operator_var,
                 values=["AND", "OR"],
                 state='readonly',
                 width=5
             )
-            operator_dropdown.pack(side='left', padx=5)
+            logic_operator_dropdown.pack(side='left', padx=5)
         else:
-            operator_var = None  # No operator for the first condition
+            logic_operator_var = None
 
         # Dropdown for parameter name
         param_var = tk.StringVar(value=param)
@@ -314,20 +419,20 @@ class MachineStatusConditionsManager:
 
         param_dropdown.pack(side='left', padx=5)
 
-        # Dropdown for operation
-        operation_var = tk.StringVar(value=operation)
-        operation_dropdown = ttk.Combobox(
+        # Dropdown for comparison operator
+        comparison_operator_var = tk.StringVar(value=comparison_operator)
+        comparison_operator_dropdown = ttk.Combobox(
             row_frame,
-            textvariable=operation_var,
+            textvariable=comparison_operator_var,
             values=["=", ">", "<", "<=", ">="],
             state='readonly',
             width=5
         )
-        if operation in ["=", ">", "<", "<=", ">="]:
-            operation_dropdown.set(operation)
+        if comparison_operator in ["=", ">", "<", "<=", ">="]:
+            comparison_operator_dropdown.set(comparison_operator)
         else:
-            operation_dropdown.set("=")  # Default to "="
-        operation_dropdown.pack(side='left', padx=5)
+            comparison_operator_dropdown.set("=")  # Default to "="
+        comparison_operator_dropdown.pack(side='left', padx=5)
 
         # Entry for parameter value
         value_entry = ttk.Entry(row_frame, width=10)
@@ -335,31 +440,40 @@ class MachineStatusConditionsManager:
         value_entry.pack(side='left', padx=5)
 
         # Button to remove this condition row
-        remove_btn = ttk.Button(row_frame, text="Remove", command=lambda: self.remove_condition_row(group, row_frame))
+        remove_btn = ttk.Button(
+            row_frame,
+            text="Remove",
+            command=lambda: self.remove_condition_row(group, row_frame)
+        )
         remove_btn.pack(side='left', padx=5)
 
         # Condition text display
         condition_text_var = tk.StringVar()
-        condition_text_var.set(f"{param} {operation} {value}")
-        condition_label = ttk.Label(group['frame'], textvariable=condition_text_var, font=('Arial', 10, 'italic'))
+        condition_text_var.set(f"{param} {comparison_operator} {value}")
+        condition_label = ttk.Label(
+            group['frame'],
+            textvariable=condition_text_var,
+            font=('Arial', 10, 'italic'),
+            background=group['frame']['bg']
+        )
         condition_label.pack(anchor='w', padx=15)
 
         # Update condition text whenever any of the fields change
         def update_condition_text(*args):
             current_param = param_var.get()
-            current_operator = operation_var.get()
+            current_comparison_operator = comparison_operator_var.get()
             current_value = value_entry.get()
-            condition_text_var.set(f"{current_param} {current_operator} {current_value}")
+            condition_text_var.set(f"{current_param} {current_comparison_operator} {current_value}")
 
         param_var.trace_add('write', update_condition_text)
-        operation_var.trace_add('write', update_condition_text)
+        comparison_operator_var.trace_add('write', update_condition_text)
         value_entry.bind('<KeyRelease>', lambda event: update_condition_text())
 
         # Store variables
         condition = {
-            'operator_var': operator_var,  # Can be None for the first condition
+            'logic_operator_var': logic_operator_var,  # Can be None for the first condition
             'param_var': param_var,
-            'operation_var': operation_var,
+            'comparison_operator_var': comparison_operator_var,
             'value_entry': value_entry,
             'condition_text_var': condition_text_var,
             'condition_label': condition_label,
@@ -369,84 +483,91 @@ class MachineStatusConditionsManager:
 
     def remove_condition_row(self, group, row_frame):
         """
-        Removes a condition row from the group.
+        Removes a condition row from the group after confirmation.
 
         :param group: The condition group.
         :param row_frame: The frame of the condition row to remove.
         """
-        for condition in group['condition_rows']:
-            if condition['frame'] == row_frame:
-                # Destroy the condition text label
-                condition['condition_label'].destroy()
-                # Destroy the entire row frame
-                condition['frame'].destroy()
-                group['condition_rows'].remove(condition)
-                break
+        confirm = messagebox.askyesno(
+            "Confirm Remove",
+            "Are you sure you want to remove this condition?",
+            parent=self.status_conditions_manager_window
+        )
+        if confirm:
+            for condition in group['condition_rows']:
+                if condition['frame'] == row_frame:
+                    # Destroy the condition text label
+                    condition['condition_label'].destroy()
+                    # Destroy the entire row frame
+                    condition['frame'].destroy()
+                    group['condition_rows'].remove(condition)
+                    break
+
+    def collect_conditions(self, group):
+        """
+        Recursively collects conditions from the UI into a nested structure.
+
+        :param group: The condition group to process.
+        :return: A dictionary representing the conditions.
+        """
+        conditions = {}
+
+        # Get logic operator for this group
+        if 'logic_operator_var' in group:
+            conditions['logic_operator'] = group['logic_operator_var'].get()
+        else:
+            conditions['logic_operator'] = 'AND'
+
+        operands = []
+
+        # Process condition rows
+        for condition in group.get('condition_rows', []):
+            logic_operator = condition['logic_operator_var'].get() if condition['logic_operator_var'] else None
+            param_name = condition['param_var'].get()
+            comparison_operator = condition['comparison_operator_var'].get()
+            value = condition['value_entry'].get()
+
+            condition_dict = {
+                'parameter': param_name,
+                'comparison_operator': comparison_operator,
+                'value': value
+            }
+
+            if logic_operator:
+                condition_dict['logic_operator'] = logic_operator
+
+            operands.append(condition_dict)
+
+        # Process nested groups
+        for child in group.get('nested_groups', []):
+            nested_conditions = self.collect_conditions(child)
+            operands.append(nested_conditions)
+
+        conditions['operands'] = operands
+
+        return conditions
 
     def submit_status_conditions(self):
         """
-        Collects the selected parameters, their values, and operations from all condition groups.
-        Structures them into the machine_status_conditions format.
+        Collects the conditions from the UI and saves them.
         """
         all_selected_params = []
+
         for group in self.condition_groups:
             group_data = {}
             status_name = group['status_var'].get()
             if not status_name:
                 messagebox.showwarning(
                     "Input Error",
-                    "Please select a machine status for each group."
+                    "Please select a machine status for each group.",
+                    parent=self.status_conditions_manager_window
                 )
                 return
             group_data['status'] = status_name
-            selected_params = []
-            condition_rows = group['condition_rows']
 
-            for condition in condition_rows:
-                operator = condition['operator_var'].get() if condition['operator_var'] else None
-                param_name = condition['param_var'].get()
-                operation = condition['operation_var'].get()
-                value = condition['value_entry'].get()
+            conditions = self.collect_conditions(group)
+            group_data['conditions'] = conditions
 
-                if not param_name or not operation or not value:
-                    messagebox.showwarning(
-                        "Input Error",
-                        "Please ensure all fields are filled."
-                    )
-                    return
-
-                condition_dict = {
-                    'parameter': param_name,
-                    'operator': operation,
-                    'value': value
-                }
-
-                if operator:
-                    condition_dict['operator'] = operator
-
-                selected_params.append(condition_dict)
-
-            if not selected_params:
-                messagebox.showwarning(
-                    "No Selection",
-                    "No parameters selected in one of the groups."
-                )
-                return
-
-            # Determine the main operator for the group
-            main_operator = 'AND'
-            if condition_rows:
-                first_condition = condition_rows[0]
-                if first_condition['operator_var']:
-                    main_operator = first_condition['operator_var'].get().upper()
-
-            # Structure the conditions with a main operator and operands
-            conditions_structured = {
-                'operator': main_operator,
-                'operands': selected_params
-            }
-
-            group_data['conditions'] = conditions_structured
             all_selected_params.append(group_data)
 
         # Update the machine_status_conditions attribute
@@ -457,18 +578,18 @@ class MachineStatusConditionsManager:
         print(json.dumps(self.machine_status_conditions, indent=4, ensure_ascii=False))
 
         # Save the updated conditions using helper function
-
         if not self.config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
-        # Update `machine_status_conditions`
+
+        # Update `machine_status_conditions` in config_data
         self.config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
 
         # Save the configuration data
         successfully = save_config_data(self.config_data, self.mde_config_file_path)
-        print(f'#####################################################saving successfully ={successfully}#######################################')
-        print(f"self.mde_config_file_path............:{self.mde_config_file_path}")
-        print(f"self.config_data............: {self.config_data}")
+        print(f'Saving successful: {successfully}')
+        print(f"Config file path: {self.mde_config_file_path}")
+        print(f"Config data: {self.config_data}")
 
         if successfully:
             # Set is_machine_status_defined to True after successful save
@@ -490,9 +611,16 @@ class MachineStatusConditionsManager:
         selected_status = self.simple_selected_status.get()
         print(f"Selected Machine Status: {selected_status}")
 
-        # Set machine_status_conditions to empty list
+        if not selected_status:
+            messagebox.showwarning(
+                "Input Error",
+                "Please select a machine status.",
+                parent=self.status_conditions_manager_window
+            )
+            return
+
+        # Set machine_status_conditions to a list containing the selected status
         self.machine_status_conditions = [{"status": selected_status}]
-          
 
         # Update the machine_status_conditions in config_data
         if self.config_data:
@@ -500,9 +628,9 @@ class MachineStatusConditionsManager:
 
             # Save the configuration data
             successfully = save_config_data(self.config_data, self.mde_config_file_path)
-            print(f'#####################################################saving successfully ={successfully}#######################################')
-            print(f"self.mde_config_file_path............:{self.mde_config_file_path}")
-            print(f"self.config_data............: {self.config_data}")
+            print(f'Saving successful: {successfully}')
+            print(f"Config file path: {self.mde_config_file_path}")
+            print(f"Config data: {self.config_data}")
 
             if successfully:
                 # Set is_machine_status_defined to True after successful save
@@ -524,29 +652,35 @@ class MachineStatusConditionsManager:
         print(f"Selected Machine Status: {selected_status}")
         # Add any additional handling here
 
-
 # Example usage
 if __name__ == "__main__":
-    # Define your default machine_status_conditions
+    # Define your default machine_status_conditions with nested conditions
     default_machine_status_conditions = [
         {
             'status': 'Produktiv im Automatikbetrieb',
             'conditions': {
-                'operator': 'OR',
+                'logic_operator': 'AND',
                 'operands': [
-                    {'parameter': 'run', 'operator': '=', 'value': '*'},
-                    {'parameter': 'S', 'operator': '>', 'value': '0'}
-                ]
-            }
-        },
-        {
-            'status': 'Läuft nicht',
-            'conditions': {
-                'operator': 'OR',
-                'operands': [
-                    {'parameter': 'run', 'operator': '=', 'value': 'MIN'},
-                    {'parameter': 'run', 'operator': '=', 'value': 'manuell'},
-                    {'parameter': 'temperature', 'operator': '<=', 'value': '50'}
+                    {
+                        'parameter': 'run',
+                        'comparison_operator': '=',
+                        'value': '*'
+                    },
+                    {
+                        'logic_operator': 'OR',
+                        'operands': [
+                            {
+                                'parameter': 'S',
+                                'comparison_operator': '>',
+                                'value': '0'
+                            },
+                            {
+                                'parameter': 'T',
+                                'comparison_operator': '<',
+                                'value': '100'
+                            }
+                        ]
+                    }
                 ]
             }
         }
