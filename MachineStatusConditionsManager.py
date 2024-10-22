@@ -230,6 +230,7 @@ class MachineStatusConditionsManager:
         # Store group frame before adding condition rows
         group['frame'] = group_frame
         group['operands'] = []
+        group['parent_group'] = parent_group  # Store reference to the parent group
 
         # Machine status selection (only for root groups)
         if is_root:
@@ -329,6 +330,7 @@ class MachineStatusConditionsManager:
                         logic_operator_var.trace_add('write', lambda *args: self.update_condition_display())
                     else:
                         logic_operator_var = None
+                        logic_operator_dropdown = None
 
                     # Create the nested group
                     nested_group = self.add_condition_group(
@@ -343,8 +345,10 @@ class MachineStatusConditionsManager:
                     nested_group_dict = {
                         'type': 'group',
                         'logic_operator_var': logic_operator_var,
+                        'logic_operator_dropdown': logic_operator_dropdown,
                         'group': nested_group,
-                        'frame': nested_group_frame
+                        'frame': nested_group_frame,
+                        'parent_group': group
                     }
                     group['operands'].append(nested_group_dict)
                 else:
@@ -392,6 +396,7 @@ class MachineStatusConditionsManager:
             logic_operator_var.trace_add('write', lambda *args: self.update_condition_display())
         else:
             logic_operator_var = None
+            logic_operator_dropdown = None
 
         # Dropdown for parameter name
         param_var = tk.StringVar(value=param)
@@ -438,10 +443,12 @@ class MachineStatusConditionsManager:
         condition = {
             'type': 'condition',
             'logic_operator_var': logic_operator_var,  # Can be None for the first operand
+            'logic_operator_dropdown': logic_operator_dropdown,  # Store the widget
             'param_var': param_var,
             'comparison_operator_var': comparison_operator_var,
             'value_entry': value_entry,
-            'frame': row_frame
+            'frame': row_frame,
+            'parent_group': group  # Store reference to the parent group
         }
         group['operands'].append(condition)
 
@@ -467,6 +474,7 @@ class MachineStatusConditionsManager:
             logic_operator_var.trace_add('write', lambda *args: self.update_condition_display())
         else:
             logic_operator_var = None
+            logic_operator_dropdown = None
 
         # Create a new frame for the nested group
         nested_group_frame = tk.Frame(parent_frame, bg=self.get_color_by_level(level + 1))
@@ -484,8 +492,10 @@ class MachineStatusConditionsManager:
         nested_group_dict = {
             'type': 'group',
             'logic_operator_var': logic_operator_var,
+            'logic_operator_dropdown': logic_operator_dropdown,  # Store the widget
             'group': nested_group,
-            'frame': nested_group_frame
+            'frame': nested_group_frame,
+            'parent_group': group  # Store reference to the parent group
         }
 
         # Append the new nested group to the parent group’s operands
@@ -494,31 +504,87 @@ class MachineStatusConditionsManager:
         # Update the condition display
         self.update_condition_display()
 
-    def remove_condition_operand(self, group, operand):
+    def remove_condition_operand(self, parent_group, operand):
         """
-        Removes a condition row or nested group from the group after confirmation.
+        Removes a condition group or row along with the logic operator that connects it to the previous condition.
+        This includes both the UI components and updating the configuration data.
         """
         confirm = messagebox.askyesno(
             "Confirm Remove",
-            "Are you sure you want to remove this condition?",
+            "Are you sure you want to remove this entire group or condition?",
             parent=self.status_conditions_manager_window
         )
         if confirm:
-            # Destroy the operand's frame
+            # 1. Destroy the operand's frame (condition or group)
             operand['frame'].destroy()
 
-            # Destroy the logic operator widget if it exists
-            if operand.get('logic_operator_dropdown'):
-                operand['logic_operator_dropdown'].destroy()
-            # Remove references to logic operator variable
-            operand['logic_operator_var'] = None
+            # 2. Remove the operand from the parent group's operands list
+            if operand in parent_group['operands']:
+                # Remove logic operator widget if exists
+                if operand.get('logic_operator_dropdown') and operand['logic_operator_dropdown'].winfo_exists():
+                    operand['logic_operator_dropdown'].destroy()
+                parent_group['operands'].remove(operand)
 
-            # Remove the operand from the group's operands list
-            if operand in group['operands']:
-                group['operands'].remove(operand)
+            # 3. Recursively remove empty parent groups
+            self.remove_empty_parent_groups(parent_group)
 
-            # Update the condition display
+            # 4. Update the config data after the removal
+            self.update_config_data_after_removal()
+
+            # 5. Update the condition display after removal
             self.update_condition_display()
+
+    def remove_empty_parent_groups(self, group):
+        """
+        Recursively removes empty parent groups from both the UI and config data.
+        """
+        if len(group['operands']) == 0:
+            # Remove group's frame
+            if 'frame' in group and group['frame'].winfo_exists():
+                group['frame'].destroy()
+            parent_group = group.get('parent_group', None)
+            if parent_group:
+                # Remove group from parent_group's operands
+                for idx, operand in enumerate(parent_group['operands']):
+                    if operand['type'] == 'group' and operand['group'] == group:
+                        # Remove logic operator widget if any
+                        if operand.get('logic_operator_dropdown') and operand['logic_operator_dropdown'].winfo_exists():
+                            operand['logic_operator_dropdown'].destroy()
+                        parent_group['operands'].pop(idx)
+                        break
+                # Recursively check parent_group
+                self.remove_empty_parent_groups(parent_group)
+            else:
+                # If no parent, remove from condition_groups
+                if group in self.condition_groups:
+                    self.condition_groups.remove(group)
+                # Remove logic operator widget if any
+                if group.get('logic_operator_dropdown') and group['logic_operator_dropdown'].winfo_exists():
+                    group['logic_operator_dropdown'].destroy()
+
+    def update_config_data_after_removal(self):
+        """
+        Updates the config data by collecting the current conditions from the UI
+        and ensuring any deleted groups or conditions are reflected in the configuration dictionary.
+        """
+        all_selected_params = []
+
+        for group in self.condition_groups:
+            group_data = {}
+            status_name = group['status_var'].get()
+            if not status_name:
+                continue  # Skip groups with no status selected
+
+            # Collect conditions recursively
+            conditions = self.collect_conditions(group)
+            if len(conditions['operands']) > 0:  # Only add if there are non-empty operands
+                group_data['status'] = status_name
+                group_data['conditions'] = conditions
+                all_selected_params.append(group_data)
+
+        # Update the machine_status_conditions in the config data
+        self.machine_status_conditions = all_selected_params
+        self.config_data['images'][str(self.but_functions.temp_img_id)]['machine_status_conditions'] = self.machine_status_conditions
 
     def collect_conditions(self, group):
         """
@@ -555,12 +621,16 @@ class MachineStatusConditionsManager:
             elif operand['type'] == 'group':
                 nested_conditions = self.collect_conditions(operand['group'])
 
-                nested_condition_dict = nested_conditions  # Nested conditions already include operands
+                if len(nested_conditions['operands']) > 0:
+                    nested_condition_dict = nested_conditions  # Nested conditions already include operands
 
-                if logic_operator:
-                    nested_condition_dict['logic_operator'] = logic_operator
+                    if logic_operator:
+                        nested_condition_dict['logic_operator'] = logic_operator
 
-                operands.append(nested_condition_dict)
+                    operands.append(nested_condition_dict)
+                else:
+                    # If nested group has no operands, skip it
+                    continue
 
         return {'operands': operands}
 
@@ -615,9 +685,16 @@ class MachineStatusConditionsManager:
                     parent=self.status_conditions_manager_window
                 )
                 return
+            conditions = self.collect_conditions(group)
+            if len(conditions['operands']) == 0:
+                messagebox.showwarning(
+                    "Input Error",
+                    "Please add at least one condition to each group.",
+                    parent=self.status_conditions_manager_window
+                )
+                return
             group_data['status'] = status_name
 
-            conditions = self.collect_conditions(group)
             group_data['conditions'] = conditions
 
             all_selected_params.append(group_data)
