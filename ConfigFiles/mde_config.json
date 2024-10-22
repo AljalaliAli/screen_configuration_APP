@@ -46,6 +46,34 @@
                 "parameter": "run",
                 "comparison_operator": "=",
                 "value": "*"
+              },
+              {
+                "operands": [
+                  {
+                    "parameter": "t",
+                    "comparison_operator": "=",
+                    "value": "0"
+                  },
+                  {
+                    "parameter": "run",
+                    "comparison_operator": "=",
+                    "value": "8",
+                    "logic_operator": "AND"
+                  }
+                ],
+                "logic_operator": "AND"
+              }
+            ]
+          }
+        },
+        {
+          "status": "L\u00e4uft nicht",
+          "conditions": {
+            "operands": [
+              {
+                "parameter": "t",
+                "comparison_operator": "=",
+                "value": "0"
               }
             ]
           }
