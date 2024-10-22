@@ -10,9 +10,9 @@
         "1": {
           "name": "run",
           "position": {
-            "x1": 63.01249081557678,
+            "x1": 63.95297575312271,
             "y1": 402.52427184466023,
-            "x2": 81.35194709772226,
+            "x2": 82.76267450404114,
             "y2": 415.9223300970874
           }
         },
@@ -21,8 +21,8 @@
           "position": {
             "x1": 204.0852314474651,
             "y1": 399.61165048543694,
-            "x2": 228.06759735488612,
-            "y2": 420.0
+            "x2": 226.65686994856725,
+            "y2": 417.0873786407767
           }
         },
         "3": {
@@ -30,17 +30,17 @@
           "position": {
             "x1": 304.71711976487876,
             "y1": 400.77669902912623,
-            "x2": 341.39603232916977,
-            "y2": 415.33980582524276
+            "x2": 337.63409257898604,
+            "y2": 419.41747572815535
           }
         },
         "4": {
           "name": "f",
           "position": {
-            "x1": 444.84937545922116,
-            "y1": 398.4466019417476,
-            "x2": 479.6473181484203,
-            "y2": 418.25242718446606
+            "x1": 446.2601028655401,
+            "y1": 397.86407766990294,
+            "x2": 475.41513592946364,
+            "y2": 420.5825242718447
           }
         }
       },
@@ -48,10 +48,10 @@
         "1": {
           "name": "as",
           "position": {
-            "x1": 5.1726671565025715,
-            "y1": 4.077669902912621,
-            "x2": 370.5510653930933,
-            "y2": 31.45631067961165
+            "x1": 8.4643644379133,
+            "y1": 5.825242718446602,
+            "x2": 156.59074210139605,
+            "y2": 27.37864077669903
           }
         }
       },
@@ -59,7 +59,6 @@
         {
           "status": "Produktiv im Automatikbetrieb",
           "conditions": {
-            "logic_operator": "AND",
             "operands": [
               {
                 "parameter": "run",
@@ -67,20 +66,54 @@
                 "value": "*"
               },
               {
-                "logic_operator": "AND",
+                "parameter": "s",
+                "comparison_operator": ">",
+                "value": "0",
+                "logic_operator": "AND"
+              },
+              {
+                "parameter": "t",
+                "comparison_operator": "=",
+                "value": "55",
+                "logic_operator": "OR"
+              },
+              {
                 "operands": [
                   {
                     "parameter": "s",
                     "comparison_operator": ">",
-                    "value": "0"
+                    "value": "5"
                   },
                   {
-                    "parameter": "f",
-                    "comparison_operator": ">",
-                    "value": "0",
+                    "parameter": "s",
+                    "comparison_operator": "<",
+                    "value": "400",
                     "logic_operator": "OR"
+                  },
+                  {
+                    "operands": [
+                      {
+                        "parameter": "t",
+                        "comparison_operator": "=",
+                        "value": "5"
+                      }
+                    ],
+                    "logic_operator": "AND"
                   }
-                ]
+                ],
+                "logic_operator": "AND"
+              }
+            ]
+          }
+        },
+        {
+          "status": "L\u00e4uft nicht",
+          "conditions": {
+            "operands": [
+              {
+                "parameter": "run",
+                "comparison_operator": "=",
+                "value": "''"
               }
             ]
           }
