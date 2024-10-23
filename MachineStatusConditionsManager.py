@@ -66,7 +66,14 @@ class MachineStatusConditionsManager:
         if not self.config_data:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
-
+        if self.but_functions.temp_img_id is None:
+             messagebox.showwarning("No Image selected", "Please select an Image first.")
+             return
+        
+        elif self.but_functions.temp_img_id == -1:
+             messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
+             return
+        
         parameters, _, _, _, _ = get_temp_img_details(
             self.config_data, self.but_functions.temp_img_id
         )
@@ -89,7 +96,7 @@ class MachineStatusConditionsManager:
             self.setup_complex_ui()
         else:
             self.setup_simplified_ui()
-
+       
     def _apply_styles(self):
         """
         Applies consistent styling to the UI elements using ttk styles.

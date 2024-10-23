@@ -662,7 +662,7 @@ class ConfigurationTool:
         """
         # Call reload_config method of ButtonFunctions
         self.but_functions.reload_config()
-
+  
     # ----------------------------------
     # Main Event Loop
     # ----------------------------------
