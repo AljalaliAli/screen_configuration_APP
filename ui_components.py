@@ -1,4 +1,4 @@
-# ConfigurationTool.py
+#ui_components.py
 
 import os
 import json
@@ -12,7 +12,7 @@ from button_actions import ButtonFunctions  # Ensure this import is correct
 from styles import configure_style
 from helpers import (
     
-    get_temp_img_details, load_config_data, save_config_data, has_config_changed
+    get_temp_img_details, load_config_data, save_config_data, has_config_changed,list_machine_status_conditions 
 )
 
 
@@ -67,7 +67,7 @@ class ConfigurationTool:
         # Initialize style
         self.style = ttk.Style()
         configure_style(self.style)  # Apply the styles defined in styles.py
-
+ 
         self.image_selected = False  # Indicates whether an image is selected
 
         self.resized_img = None
@@ -158,16 +158,31 @@ class ConfigurationTool:
         Prompts the user to save the configuration before exiting.
         """
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-
+        
         if not self.image_selected:
             self.root.destroy()
-        elif config_changed and not self.machine_status_conditions_manager.is_machine_status_defined:
-            print(f"#####################>>>>>>>>{config_changed} and not {self.machine_status_conditions_manager.is_machine_status_defined}")
-            messagebox.showwarning(
-                "Incomplete Configuration",
-                "Please select a machine status before exiting."
-            )
-        elif config_changed and self.machine_status_conditions_manager.is_machine_status_defined:
+
+        elif config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+            while True:
+                response = messagebox.askyesno(
+                    "Machine Status Required",
+                    "Machine status is not defined. Would you like to define it now?"
+                )
+
+                if response:  # If user selects 'Yes'
+ 
+                    break  # Exit the loop after defining the status
+                else:  # If user selects 'No'
+                    warning_response = messagebox.askyesno(
+                        "Confirm Exit",
+                        "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
+                    )
+                    if warning_response:  # If they confirm they want to exit without saving
+                        self.root.destroy()
+                        break  # Exit the loop and proceed with exit
+                    # Otherwise, the loop continues, asking the user again
+
+        elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
             print("[DEBUG] Configuration has changed. Saving the changes.")
             save_config_data(self.config_data, self.mde_config_file_path)
             self.root.destroy()
@@ -217,15 +232,19 @@ class ConfigurationTool:
         select_img_but = Button(self.side_bar, text="Select Image", command=self.select_image)
         select_img_but.pack(fill=X, **pad_options)
 
+        # Button to add screen feature
+        self.add_screen_feature_but = Button(self.side_bar, text="Add Screen Feature", command=self.add_screen_feature)
+        self.add_screen_feature_but.pack(fill=X, **pad_options)
+        self.add_screen_feature_but_default_bg = self.add_screen_feature_but.cget('bg')
+
         # Button to add a new parameter
         self.add_par_but = Button(self.side_bar, text="Add New Parameter", command=self.add_parameter)
         self.add_par_but.pack(fill=X, **pad_options)
         self.add_par_but_default_bg = self.add_par_but.cget('bg')
 
-        # Button to add screen feature
-        self.add_screen_feature_but = Button(self.side_bar, text="Add Screen Feature", command=self.add_screen_feature)
-        self.add_screen_feature_but.pack(fill=X, **pad_options)
-        self.add_screen_feature_but_default_bg = self.add_screen_feature_but.cget('bg')
+        # Separator
+        separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
+        separator.pack(fill=X, padx=5, pady=10)
 
         # Button to clear the canvas
         clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
@@ -267,16 +286,28 @@ class ConfigurationTool:
 
     def on_parameter_addition_complete(self):
         """
-        Resets the 'Add New Parameter' button background color after parameter addition is complete.
+        Resets the 'Add New Parameter' button background color after parameter addition is complete or canceled.
         """
         self.add_par_but.config(bg=self.add_par_but_default_bg)
-
+    
     def on_screen_feature_addition_complete(self):
         """
-        Resets the 'Add Screen Feature' button background color after screen feature addition is complete.
+        Resets the 'Add Screen Feature' button background color after screen feature addition is complete or canceled.
         """
         self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
 
+
+    def activate_button(self, button_to_activate):
+        """
+        Activates the specified button by setting its background to green
+        and deactivates the other button by resetting its background to default.
+        """
+        # Reset both buttons to their default background colors
+        self.add_par_but.config(bg=self.add_par_but_default_bg)
+        self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
+        
+        # Activate the clicked button by setting its background to green
+        button_to_activate.config(bg='green')
     # ----------------------------------
     # Image Handling
     # ----------------------------------
@@ -360,51 +391,48 @@ class ConfigurationTool:
         self.dropdown_label.pack_forget()
         self.status_listbox.pack_forget()
     # ----------------------------------
-    # Parameter Management
+    # Parameter abd Screen_featur Management
     # ----------------------------------
     def add_parameter(self):
         """
-        Adds a new parameter to the selected image.
-        Draws a green rectangle when clicked.
+        Initiates the process to add a new parameter.
+        Activates the 'Add New Parameter' button.
         """
-        if hasattr(self, 'original_image') and self.original_image is not None:
-            if self.but_functions.temp_img_id != -1:
-                # Change button background to indicate active state
-                self.add_par_but.config(bg='green')
-                self.but_functions.add_parameter_threaded(
-                    resize_percent_width=self.resize_percent_width,
-                    resize_percent_height=self.resize_percent_height,
-                    box_color="#00FF00"  # Green color for parameter box
-                )
-            else:
-                messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
-        else:
-            messagebox.showwarning("No Image", "Please load an image first.")
-
-    # ----------------------------------
-    # Screen Feature Management
-    # ----------------------------------
+        # Activate the 'Add New Parameter' button
+        if self.but_functions.temp_img_id is None:
+            messagebox.showwarning("Warning", "Select an image first then add screen feture then Paramter")
+            return
+        if self.but_functions.temp_img_id == -1:
+            messagebox.showwarning("Warning","Add a screen feature first")
+            return
+        self.activate_button(self.add_par_but)
+        
+        # Start the parameter addition process
+        self.but_functions.add_parameter_threaded(
+            resize_percent_width=self.resize_percent_width,
+            resize_percent_height=self.resize_percent_height,
+            box_color="#00FF00"  # Green color for parameter box
+        )
+    
     def add_screen_feature(self):
         """
-        Adds a new screen feature to the selected image.
-        Draws a red rectangle when clicked.
+        Initiates the process to add a new screen feature.
+        Activates the 'Add Screen Feature' button.
         """
-        # Check if an image has been loaded
-        if hasattr(self, 'original_image') and self.original_image is not None:
-            img_size = {"width": self.original_image.width, "height": self.original_image.height}
-            # Change button background to indicate active state
-            self.add_screen_feature_but.config(bg='green')
-            # Activate drawing with red color for screen features
-            self.but_functions.add_screen_feature_threaded(
-                img_size=img_size,
-                resize_percent_width=self.resize_percent_width,
-                resize_percent_height=self.resize_percent_height,
-                box_color="#FF0000"  # Red color for feature box
-            )
-        else:
-            # Warn the user if no image was loaded
-            messagebox.showwarning("No Image", "Please load an image first.")
-
+        if self.but_functions.temp_img_id is None:
+            messagebox.showwarning("Warning","Select an image first ")
+            return
+        # Activate the 'Add Screen Feature' button
+        self.activate_button(self.add_screen_feature_but)
+        
+        # Start the screen feature addition process
+        self.but_functions.add_screen_feature_threaded(
+            img_size={"width": self.original_image.width, "height": self.original_image.height},
+            resize_percent_width=self.resize_percent_width,
+            resize_percent_height=self.resize_percent_height,
+            box_color="#FF0000"  # Red color for feature box
+        )
+    
     # ----------------------------------
     # Deletion Management
     # ----------------------------------
@@ -556,6 +584,12 @@ class ConfigurationTool:
                 for item_id in item_ids:
                     if item_id in self.config_data['images'][image_id][item_type]:
                         del self.config_data['images'][image_id][item_type][item_id]
+                        ## if the temlate image has no features more delete every thing related to it
+                        if self.config_data['images'][image_id]['features'] is None or not  self.config_data['images'][image_id]['features'] : 
+                            del self.config_data['images'][image_id]
+                            save_config_data(self.config_data, self.mde_config_file_path)
+                            self.delete_image_file()
+                    
             else:
                 print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 
