@@ -155,6 +155,8 @@ class MachineStatusConditionsManager:
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         if self.machine_statuses:
             machine_status_dropdown.current(0)
+            
+            
         submit_btn = ttk.Button(
             simplified_frame, text="Submit", command=self.submit_simple_status_conditions
         )
@@ -349,6 +351,8 @@ class MachineStatusConditionsManager:
             values=self.machine_statuses,
             state="readonly",
         )
+ 
+
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         machine_status_dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
         group["status_var"] = selected_option
@@ -816,4 +820,4 @@ class MachineStatusConditionsManager:
         Args:
             event: The event object.
         """
-        pass  # Implement additional logic if needed
+        pass  # Implement additional logic if needed "

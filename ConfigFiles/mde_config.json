@@ -30,13 +30,25 @@
       },
       "machine_status_conditions": [
         {
-          "status": "L\u00e4uft nicht",
+          "status": "St\u00f6rung",
           "conditions": {
             "operands": [
               {
                 "parameter": "x",
                 "comparison_operator": "=",
                 "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "status": "L\u00e4uft nicht",
+          "conditions": {
+            "operands": [
+              {
+                "parameter": "x",
+                "comparison_operator": "=",
+                "value": "e"
               }
             ]
           }

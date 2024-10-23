@@ -12,7 +12,7 @@ from helpers import (
     add_item_to_template,
     get_next_template_id,
     save_template_image)
-from helpers import get_machine_status_from_temp_img_id
+ 
 
 class ButtonFunctions:
     """

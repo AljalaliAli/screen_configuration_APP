@@ -296,37 +296,7 @@ def list_machine_status_conditions(data_input, img_temp_id):
     machine_status_conditions = image.get("machine_status_conditions", [])
     return machine_status_conditions
 
-def get_machine_status_from_temp_img_id(temp_img_id, config_ini_path='config.ini'):##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> to be deleted
-    """
-    Retrieves the machine status name and key based on the temporary image ID.
-
-    Parameters:
-    - temp_img_id (int): The temporary image ID.
-    - config_ini_path (str): Path to the configuration INI file.
-
-    Returns:
-    - tuple: A tuple containing the status name and key, or None if not found.
-    """
-    config = configparser.ConfigParser()
-    config.read(config_ini_path, encoding='utf-8')
-
-    if 'potential_machine_status' not in config or 'choices_dict' not in config['potential_machine_status']:
-        raise Exception(
-            "The 'choices_dict' is not found in the 'potential_machine_status' section of the config.ini."
-        )
-
-    choices_dict_str = config['potential_machine_status']['choices_dict']
-
-    try:
-        choices_dict = ast.literal_eval(choices_dict_str)
-    except Exception as e:
-        raise Exception(f"Error parsing 'choices_dict' from config.ini: {e}")
-
-    for key, value in choices_dict.items():
-        range_start, range_end = value['range']
-        if range_start <= temp_img_id <= range_end:
-            return (value['name'], key)
-    return None
+ 
 
 def copy_and_rename_file(file_path, dst_dir, new_filename):
     """

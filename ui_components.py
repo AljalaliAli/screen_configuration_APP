@@ -11,7 +11,7 @@ from MachineStatusConditionsManager import MachineStatusConditionsManager
 from button_actions import ButtonFunctions  # Ensure this import is correct
 from styles import configure_style
 from helpers import (
-    get_machine_status_from_temp_img_id,
+    
     get_temp_img_details, load_config_data, save_config_data, has_config_changed
 )
 
@@ -72,7 +72,7 @@ class ConfigurationTool:
 
         self.resized_img = None
         self.original_image = None
-        self.status_info = None
+         
 
         # Initialize parameters and machine statuses
         self.parameters = []
@@ -289,12 +289,8 @@ class ConfigurationTool:
             self.image_selected = True  # Set image_selected to True before loading the image
             self.selected_img_path = image_data[0]  # Store the image path
             self.load_image(image_data)  # Load the image first
-
-            self.status_info = get_machine_status_from_temp_img_id(
-                self.but_functions.temp_img_id)
-            if self.status_info:
-                status_name, _ = self.status_info
-                self.update_possible_machine_status()
+            self.update_possible_machine_status()
+      
         else:
             print("[DEBUG] No image data retrieved.")
 
