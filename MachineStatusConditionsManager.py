@@ -769,15 +769,24 @@ class MachineStatusConditionsManager:
         self.machine_status_conditions = [{"status": selected_status}]
         if self.config_data:
             image_id = str(self.but_functions.temp_img_id)
-            self.config_data["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
-            if save_config_data(self.config_data, self.mde_config_file_path):
-                self.is_machine_status_defined = True
+            
+            # Check if temp_img_id is valid
+            if image_id != '-1':
+                if image_id not in self.config_data["images"]:
+                    self.config_data["images"][image_id] = {}
+                
+                self.config_data["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
+                if save_config_data(self.config_data, self.mde_config_file_path):
+                    self.is_machine_status_defined = True
+            else:
+                messagebox.showwarning("Invalid Image ID", "Cannot save machine status with temp_img_id = -1.")
+                return
 
         if self.on_submit_callback:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-   
+
     #################################################
     # === Utility Methods ===
     #################################################

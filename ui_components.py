@@ -357,6 +357,12 @@ class ConfigurationTool:
         """
         self.but_functions.clear_canvas(self.img_canvas, "bg")
 
+        # Clear machine status conditions
+        self.possible_machine_status=[]
+        self.machine_status_conditions_manager.machine_status_conditions = []
+        self.update_possible_machine_status()
+        self.dropdown_label.pack_forget()
+        self.status_listbox.pack_forget()
     # ----------------------------------
     # Parameter Management
     # ----------------------------------
@@ -408,15 +414,14 @@ class ConfigurationTool:
     # ----------------------------------
     def delete_items(self):
         """
-        Opens a dialog to select and delete features or parameters from the selected image.
+        Opens a dialog to select and delete features or parameters.
         """
-        if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("No Image Selected", "Please select an image first.")
+        if self.but_functions.temp_img_id is None or self.but_functions.temp_img_id == -1:
+            messagebox.showwarning("No Valid Image Selected", "There is no thing to delete!")
             return
 
-        # Open the delete dialog
         self.open_delete_dialog()
-
+        
     def open_delete_dialog(self):
         """
         Opens a dialog window for deleting features or parameters.
@@ -568,6 +573,10 @@ class ConfigurationTool:
         if self.but_functions.temp_img_id is None or self.selected_img_path is None:
             messagebox.showwarning("No Image Selected", "Please select an image first.")
             return
+        
+        if self.but_functions.temp_img_id == -1:
+            #messagebox.showwarning("")
+            return
 
         # Confirm reset action
         result = messagebox.askyesno(
@@ -576,11 +585,10 @@ class ConfigurationTool:
         )
 
         if result:
-            # Delete from config_data
-            self.delete_template_data()
-
             # Delete the image file
             self.delete_image_file()
+            # Delete from config_data
+            self.delete_template_data()
 
             # Clear the canvas and reset variables
             self.clear_canvas()
@@ -590,36 +598,47 @@ class ConfigurationTool:
             self.resized_img = None
             self.image_selected = False
 
+            # Clear machine status conditions
+            self.machine_status_conditions_manager.machine_status_conditions = []
+            self.update_possible_machine_status()
+
             # Reinitialize the matcher and painter
             self.but_functions.reload_config()
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
-
+            
     def delete_template_data(self):
         """
         Deletes the template data from the config_data.
         """
         image_id = str(self.but_functions.temp_img_id)
-        with self.but_functions.config_data_lock:
-            if image_id in self.config_data['images']:
-                del self.config_data['images'][image_id]
-                save_config_data(self.config_data, self.mde_config_file_path)
+        if image_id != '-1':
+            with self.but_functions.config_data_lock:
+                if image_id in self.config_data['images']:
+                    del self.config_data['images'][image_id]
+                    save_config_data(self.config_data, self.mde_config_file_path)
+        else:
+            print("[DEBUG] Invalid temp_img_id (-1), no data to delete.")
+
 
     def delete_image_file(self):
         """
         Deletes the image file associated with the current template.
         """
         try:
-            # The image is stored in the templates directory with a name like "template_{id}.png"
-            template_image_name = f"template_{self.but_functions.temp_img_id}.png"
-            template_image_path = os.path.join(self.but_functions.templates_dir, template_image_name)
+            if self.but_functions.temp_img_id != -1:
+                template_image_name = f"template_{self.but_functions.temp_img_id}.png"
+                template_image_path = os.path.join(self.but_functions.templates_dir, template_image_name)
 
-            if os.path.exists(template_image_path):
-                os.remove(template_image_path)
+                if os.path.exists(template_image_path):
+                    os.remove(template_image_path)
+                else:
+                    print(f"[DEBUG] Image file {template_image_path} does not exist.")
             else:
-                print(f"[DEBUG] Image file {template_image_path} does not exist.")
+                print("[DEBUG] Invalid temp_img_id (-1), no image file to delete.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete image file: {e}")
+
 
     def update_possible_machine_status(self):
         """

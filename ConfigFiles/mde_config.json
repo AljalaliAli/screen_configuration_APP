@@ -8,70 +8,33 @@
       },
       "parameters": {
         "1": {
-          "name": "run",
+          "name": "x",
           "position": {
-            "x1": 63.48273328434975,
-            "y1": 397.86407766990294,
-            "x2": 80.88170462894931,
-            "y2": 417.6699029126214
-          }
-        },
-        "2": {
-          "name": "t",
-          "position": {
-            "x1": 205.96620132255694,
-            "y1": 401.9417475728156,
-            "x2": 226.18662747979428,
-            "y2": 417.0873786407767
+            "x1": 88.40558412931668,
+            "y1": 200.38834951456312,
+            "x2": 116.14988978692139,
+            "y2": 219.02912621359224
           }
         }
       },
       "features": {
         "1": {
-          "name": "as",
+          "name": "srdt",
           "position": {
-            "x1": 8.4643644379133,
-            "y1": 4.077669902912621,
-            "x2": 154.70977222630418,
-            "y2": 28.543689320388353
+            "x1": 5.1726671565025715,
+            "y1": 3.4951456310679614,
+            "x2": 68.18515797207935,
+            "y2": 33.786407766990294
           }
         }
       },
       "machine_status_conditions": [
         {
-          "status": "Produktiv im Automatikbetrieb",
-          "conditions": {
-            "operands": [
-              {
-                "parameter": "run",
-                "comparison_operator": "=",
-                "value": "*"
-              },
-              {
-                "operands": [
-                  {
-                    "parameter": "t",
-                    "comparison_operator": "=",
-                    "value": "0"
-                  },
-                  {
-                    "parameter": "run",
-                    "comparison_operator": "=",
-                    "value": "8",
-                    "logic_operator": "AND"
-                  }
-                ],
-                "logic_operator": "AND"
-              }
-            ]
-          }
-        },
-        {
           "status": "L\u00e4uft nicht",
           "conditions": {
             "operands": [
               {
-                "parameter": "t",
+                "parameter": "x",
                 "comparison_operator": "=",
                 "value": "0"
               }
