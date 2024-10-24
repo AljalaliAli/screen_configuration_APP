@@ -57,8 +57,8 @@ class ImageMatcher:
        #loop throw all image templates
         for temp_img_id, temp_img_data in  self.mde_config_data["images"].items():     
             temp_img_path = os.path.join(self.templates_dir, temp_img_data["path"])   
-            #print(f"temp_img_path  .........................{temp_img_path} ")
-            #print('current template image size: ', temp_img_data["size"])
+            print(f"[Debug pattern_detection ] temp_img_path  .........................{temp_img_path} ")
+            print(f'[Debug pattern_detection ] current template image size: ', temp_img_data["size"])
             match_values=[]
             features_count=0
             match_count=0
@@ -80,14 +80,16 @@ class ImageMatcher:
                 match_val = self.compute_match_value(imge_cropped_gray, cropped_temp_gray )
                
                 match_values.append(match_val)
+                print('*********************************************')
+                print('current match_values')
+                print(f"match_values ={match_values}                temp_img_id = {temp_img_id}     ")
+                print(f"min_match_val ={min_match_val}                   ")
+                print('*********************************************')
+                    
                 if match_val>= min_match_val:
                     match_count +=1
             if match_count == features_count:
-               # print('*********************************************')
-                #print('current match_values')
-                #print(f"match_values ={match_values}                temp_img_id = {temp_img_id}     ")
-                #print('*********************************************')
-                    
+
                 return  match_values,temp_img_id
         return -1,-1
    

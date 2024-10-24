@@ -283,7 +283,6 @@ class ConfigurationTool:
         self.status_listbox.pack(fill=X, padx=5, pady=10)
         self.status_listbox.pack_forget()  # Hide initially
 
-
     def on_parameter_addition_complete(self):
         """
         Resets the 'Add New Parameter' button background color after parameter addition is complete or canceled.
@@ -295,7 +294,6 @@ class ConfigurationTool:
         Resets the 'Add Screen Feature' button background color after screen feature addition is complete or canceled.
         """
         self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
-
 
     def activate_button(self, button_to_activate):
         """
@@ -568,7 +566,8 @@ class ConfigurationTool:
             window.destroy()
 
             # Redraw the image to reflect changes
-            self.load_image((self.selected_img_path, self.but_functions.temp_img_id))
+            if self.selected_img_path and self.but_functions.temp_img_id: #after deleting check this condition
+                self.load_image((self.selected_img_path, self.but_functions.temp_img_id))
 
     def delete_selected_items(self, item_type, item_ids):
         """
@@ -589,7 +588,17 @@ class ConfigurationTool:
                             del self.config_data['images'][image_id]
                             save_config_data(self.config_data, self.mde_config_file_path)
                             self.delete_image_file()
-                    
+                        self.delete_image_file()
+                        # Clear the canvas and reset variables
+                        self.clear_canvas()
+                        self.but_functions.temp_img_id = None
+                        self.selected_img_path = None
+                        self.original_image = None
+                        self.resized_img = None
+                        self.image_selected = False
+                        # Reinitialize the matcher and painter
+                        self.but_functions.reload_config()
+                        self.clear_canvas()
             else:
                 print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 
@@ -668,7 +677,6 @@ class ConfigurationTool:
                 print("[DEBUG] Invalid temp_img_id (-1), no image file to delete.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete image file: {e}")
-
 
     def update_possible_machine_status(self):
         """

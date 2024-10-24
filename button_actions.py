@@ -98,9 +98,10 @@ class ButtonFunctions:
         file_path = filedialog.askopenfilename(
             filetypes=[("Bilddateien", "*.bmp *.jpg *.jpeg *.png *.tif *.tiff"), ("Alle Dateien", "*.*")]
         )
+        print(f"[Debug] file_path: {file_path} ")
         if file_path:
-            self.img_path = file_path  # Speichert den ausgewählten Bildpfad global
-            try:
+                self.img_path = file_path  # Speichert den ausgewählten Bildpfad global
+           # try:
                 # Bild mit OpenCV laden, um Konsistenz mit dem Matcher zu gewährleisten
                 img_cv2 = cv2.imread(file_path)
 
@@ -117,8 +118,8 @@ class ButtonFunctions:
 
                 return file_path, self.temp_img_id
 
-            except Exception as e:
-                messagebox.showerror("Fehler beim Durchsuchen von Dateien", f"Bild konnte nicht geladen werden: {e}")
+           # except Exception as e:
+             #   messagebox.showerror("Fehler beim Durchsuchen von Dateien", f"Bild konnte nicht geladen werden: {e}")
         return None
 
     def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
