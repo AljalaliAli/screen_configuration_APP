@@ -1,82 +1,87 @@
-DataGeneration App v0.0.8 Release Notes
+# DataGeneration App v0.0.8 Release Notes
 
-Release Date: October 24, 2024
+**Release Date:** October 24, 2024
 
-What’s New
+## What’s New
 
-Multi-Machine Support
+### Multi-Machine Support
 
-Threaded Execution: Run multiple machines simultaneously from a single software instance.
+- **Threaded Execution:** Run multiple machines simultaneously from a single software instance.
+- **Enhanced Scalability:** Efficiently handle concurrent processing tasks.
 
-Enhanced Scalability: Efficiently handle concurrent processing tasks.
+### OCR Improvements
 
-OCR Improvements
+- **Blacklist for OCR:** Switched from whitelist to blacklist for more effective character filtering.
+- **Enhanced Error Handling:** Improved error handling mechanisms and added detailed comments to the image processing logic.
 
-Blacklist for OCR: Switched from whitelist to blacklist for more effective character filtering.
+### Image Management
 
-Enhanced Error Handling: Improved error handling mechanisms and added detailed comments to the image processing logic.
+- **Unrecognized Images:** Ability to save unrecognized images in a specific, configurable folder.
+- **Configurable Deletion or Archiving:** Option to delete images after extraction or move them to a `processed_images` folder based on `config.ini` settings.
 
-Image Management
+### Database Enhancements
 
-Unrecognized Images: Ability to save unrecognized images in a specific, configurable folder.
+- **matched_template_id:** Added `matched_template_id` to the database for better tracking and management.
+- **Database Directory Configuration:** Specify the database directory via `config.ini` for greater flexibility.
 
-Configurable Deletion or Archiving: Option to delete images after extraction or move them to a processed_images folder based on config.ini settings.
+### Bug Fixes
 
-Database Enhancements
+- **Template Matching:** Fixed an issue that caused the application to crash when `matched_template_id = -1`.
 
-matched_template_id: Added matched_template_id to the database for better tracking and management.
+### Configurability Enhancements
 
-Database Directory Configuration: Specify the database directory via config.ini for greater flexibility.
+- **Waiting Logic:** New parameters in `config.ini` to control waiting behavior between image processing batches:
+  - `waiting_for_next_image`: Enable or disable waiting for new images.
+  - `waiting_duration`: Set the duration (in seconds) to wait before checking for new images.
 
-Bug Fixes
+## Key Requirements
 
-Template Matching: Fixed an issue that caused the application to crash when matched_template_id = -1.
+### Directory Structure
 
-Configurability Enhancements
+Ensure your application directory follows this structure:
 
-Waiting Logic: New parameters in config.ini to control waiting behavior between image processing batches:
+YourAppDirectory │
+          ├── DataGeneration.exe 
+          ├── ini_files/ 
+                   ├── config_ID0002_MID0001.ini
+                   ├── config_ID0002_MID0002.ini
+                   ├── ... (up to MID0005)
 
-waiting_for_next_image: Enable or disable waiting for new images.
+### Configuration Files
 
-waiting_duration: Set the duration (in seconds) to wait before checking for new images.
+- **Placement:** Place `.ini` files in the `ini_files` folder alongside the executable, following the `config_ID####_MID####.ini` naming format.
 
-Key Requirements
+### Configuration Highlights
 
-Directory Structure:
+#### Paths Section
 
-YourAppDirectory
-│
-├── DataGeneration.exe
-├── ini_files/
-    ├── config_ID0002_MID0001.ini
-    ├── config_ID0002_MID0002.ini
-    ├── ... (up to MID0005)
+Set directories for:
+- Configurations
+- Images
+- Tesseract OCR
+- Database
 
-Configuration Files: Place .ini files in the ini_files folder alongside the executable, following the config_ID####_MID####.ini naming format.
+#### Parameters Section
 
-Configuration Highlights
+Configure:
+- Language settings
+- Character blacklist
+- Processing options
+- Waiting durations
 
-Paths Section:
+## Installation Steps
 
-Set directories for configs, images, Tesseract OCR, and the database.
+1. **Download v0.0.8:** Get `DataGeneration_v008.exe`.
+2. **Setup Directories:**
+   - Place the executable in your desired directory.
+   - Create an `ini_files` folder within the same directory.
+   - Add your `.ini` configuration files to the `ini_files` folder.
+3. **Configure Settings:**
+   - Update the `.ini` files with your environment paths and preferences.
+4. **Tesseract OCR:**
+   - Ensure Tesseract is installed and correctly referenced in the configuration.
 
-Parameters Section:
+## Known Issues
 
-Language settings, character blacklist, processing options, and waiting durations.
-
-Installation Steps
-
-Download v0.08: Get DataGeneration_v008.exe .
-
-Setup Directories: Place the executable and create the ini_files folder with your .ini configurations.
-
-Configure Settings: Update the .ini files with your environment paths and preferences.
-
-Tesseract OCR: Ensure Tesseract is installed and correctly referenced in the configuration.
-
-Known Issues
-
-Configuration Errors: Ensure .ini files follow the recommended naming to avoid parsing issues.
-
-Performance: High thread counts may affect system performance. Test to find the optimal number for your setup.
-
+- **Configuration Errors:** Ensure `.ini` files follow the recommended naming to avoid parsing issues.
+- **Performance:** High thread counts may affect system performance. Test to find the optimal number for your setup.
