@@ -1,50 +1,67 @@
 {
   "images": {
     "1": {
-      "path": "template_1.png",
+      "path": "template_1.tiff",
       "size": {
         "width": 640,
         "height": 480
       },
-      "parameters": {},
+      "parameters": {
+        "1": {
+          "name": "ssss",
+          "position": {
+            "x1": 75.70903747244674,
+            "y1": 410.0970873786408,
+            "x2": 110.03673769287289,
+            "y2": 422.33009708737865
+          }
+        }
+      },
       "features": {
         "1": {
-          "name": "cc",
+          "name": "ss",
           "position": {
-            "x1": 6.583394562821455,
-            "y1": 6.990291262135923,
-            "x2": 40.91109478324761,
-            "y2": 19.80582524271845
+            "x1": 7.9941219691403385,
+            "y1": 5.242718446601942,
+            "x2": 118.03085966201323,
+            "y2": 28.543689320388353
           }
         }
       },
       "machine_status_conditions": [
         {
-          "status": "Produktiv im Automatikbetrieb"
-        }
-      ]
-    },
-    "2": {
-      "path": "template_2.tiff",
-      "size": {
-        "width": 640,
-        "height": 480
-      },
-      "parameters": {},
-      "features": {
-        "1": {
-          "name": "sd",
-          "position": {
-            "x1": 9.404849375459222,
-            "y1": 6.407766990291263,
-            "x2": 66.77443056576047,
-            "y2": 30.873786407766993
+          "status": "L\u00e4uft nicht",
+          "conditions": {
+            "operands": [
+              {
+                "parameter": "ssss",
+                "comparison_operator": "=",
+                "value": "4"
+              }
+            ]
           }
-        }
-      },
-      "machine_status_conditions": [
+        },
         {
-          "status": "Produktiv im Automatikbetrieb"
+          "status": "Manueller Betrieb",
+          "conditions": {
+            "operands": [
+              {
+                "parameter": "ssss",
+                "comparison_operator": "=",
+                "value": "0"
+              },
+              {
+                "operands": [
+                  {
+                    "parameter": "ssss",
+                    "comparison_operator": "<",
+                    "value": "10"
+                  }
+                ],
+                "logic_operator": "AND"
+              }
+            ]
+          }
         }
       ]
     }

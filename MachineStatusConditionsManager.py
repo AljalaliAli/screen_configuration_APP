@@ -672,6 +672,11 @@ class MachineStatusConditionsManager:
                 param_name = operand["param_var"].get()
                 comparison_operator = operand["comparison_operator_var"].get()
                 value = operand["value_entry"].get()
+
+              # **Filter out operands with any fields empty**
+                if not param_name or not comparison_operator or not value:
+                    continue  # Skip saving this operand
+
                 condition_dict = {
                     "parameter": param_name,
                     "comparison_operator": comparison_operator,
@@ -730,6 +735,7 @@ class MachineStatusConditionsManager:
         Collects all conditions and saves them to the configuration file upon submission.
         """
         all_selected_params = []
+        total_groups_count = len(self.condition_groups)
         for group in self.condition_groups:
             status_name = group["status_var"].get()
             if not status_name:
@@ -738,7 +744,7 @@ class MachineStatusConditionsManager:
                 )
                 return
             conditions = self.collect_conditions(group)
-            if not conditions["operands"]:
+            if total_groups_count > 1 and not conditions["operands"]:
                 messagebox.showwarning(
                     "Input Error", "Please add at least one condition to each group."
                 )
