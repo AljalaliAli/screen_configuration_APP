@@ -53,7 +53,7 @@ class ImageMatcher:
         - Tuple: (match_values, temp_img_id) if a matching template is found,
                  (-1, -1) if no matching template is found.
         """
-
+        #print(f"[Debug match_images] self.mde_config_data : {self.mde_config_data}")
        #loop throw all image templates
         for temp_img_id, temp_img_data in  self.mde_config_data["images"].items():     
             temp_img_path = os.path.join(self.templates_dir, temp_img_data["path"])   

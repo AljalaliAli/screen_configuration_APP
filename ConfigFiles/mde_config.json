@@ -1,0 +1,38 @@
+{
+  "images": {
+    "1": {
+      "path": "template_1.tiff",
+      "size": {
+        "width": 640,
+        "height": 480
+      },
+      "parameters": {
+        "1": {
+          "name": "t",
+          "position": {
+            "x1": 25.86333578251286,
+            "y1": 357.66990291262135,
+            "x2": 49.845701689933875,
+            "y2": 371.65048543689323
+          }
+        }
+      },
+      "features": {
+        "1": {
+          "name": "ss",
+          "position": {
+            "x1": 533.2549595885379,
+            "y1": 5.242718446601942,
+            "x2": 627.773695811903,
+            "y2": 36.116504854368934
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb"
+        }
+      ]
+    }
+  }
+}

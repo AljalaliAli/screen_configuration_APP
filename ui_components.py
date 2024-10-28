@@ -340,8 +340,10 @@ class ConfigurationTool:
                     elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
                         print("[DEBUG] Configuration has changed. Saving the changes.")
                         save_config_data(self.config_data, self.mde_config_file_path)
+                        
                          
-        else:
+        else:  
+            self.but_functions.matcher.mde_config_data = self.config_data # update the  config_data in the matcher class
             image_data = self.but_functions.browse_files()
             if image_data:
                 self.image_selected = True  # Set image_selected to True before loading the image
