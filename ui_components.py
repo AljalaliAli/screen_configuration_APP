@@ -313,15 +313,44 @@ class ConfigurationTool:
         """
         Handles the selection and loading of an image to the canvas.
         """
-        image_data = self.but_functions.browse_files()
-        if image_data:
-            self.image_selected = True  # Set image_selected to True before loading the image
-            self.selected_img_path = image_data[0]  # Store the image path
-            self.load_image(image_data)  # Load the image first
-            self.update_possible_machine_status()
-      
+        ## Ensure that the configuration for the current image is complete before selecting a new image.
+        config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
+        if config_changed:
+                    if config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+                            while True:
+                                response = messagebox.askyesno(
+                                    "Machine Status Required",
+                                    "Machine status is not defined. Would you like to define it now?"
+                                )
+
+                                if response:  # If user selects 'Yes'
+                
+                                    break  # Exit the loop after defining the status
+                                else:  # If user selects 'No'
+                                    warning_response = messagebox.askyesno(
+                                        "Confirm Exit",
+                                        "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
+                                    )
+                                    if warning_response:  # If they confirm they want to exit without saving
+                                        self.root.destroy()
+                                        break  # Exit the loop and proceed with exit
+                                    # Otherwise, the loop continues, asking the user again
+
+
+                    elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+                        print("[DEBUG] Configuration has changed. Saving the changes.")
+                        save_config_data(self.config_data, self.mde_config_file_path)
+                         
         else:
-            print("[DEBUG] No image data retrieved.")
+            image_data = self.but_functions.browse_files()
+            if image_data:
+                self.image_selected = True  # Set image_selected to True before loading the image
+                self.selected_img_path = image_data[0]  # Store the image path
+                self.load_image(image_data)  # Load the image first
+                self.update_possible_machine_status()
+        
+            else:
+                print("[DEBUG] No image data retrieved.")
 
     def load_image(self, image_data):
         """
