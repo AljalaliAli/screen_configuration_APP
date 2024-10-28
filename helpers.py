@@ -103,11 +103,22 @@ def get_next_template_id(config_data):
             return None
 
 def save_template_image(img_path, templates_dir, new_template_id):
-    """Saves the template image to the templates directory."""
-    template_image_name = f"template_{new_template_id}.png"
+    """Saves the template image to the templates directory with its original extension."""
+    # Extract the file extension from the original image path
+    _, ext = os.path.splitext(img_path)
+    # If no extension is found, default to '.png'
+    if not ext:
+        ext = '.tiff' 
+    # Construct the new template image name with the original extension
+    template_image_name = f"template_{new_template_id}{ext}"
+    
+    # Define the full path for the new template image
     template_image_path = os.path.join(templates_dir, template_image_name)
+    
+    # Open the original image and save it with the new name and extension
     img = Image.open(img_path)
-    img.save(template_image_path)  # Save as PNG
+    img.save(template_image_path)
+    
     return template_image_name
 
 def load_data(data_input):

@@ -1,3 +1,52 @@
 {
-  "images": {}
+  "images": {
+    "1": {
+      "path": "template_1.png",
+      "size": {
+        "width": 640,
+        "height": 480
+      },
+      "parameters": {},
+      "features": {
+        "1": {
+          "name": "cc",
+          "position": {
+            "x1": 6.583394562821455,
+            "y1": 6.990291262135923,
+            "x2": 40.91109478324761,
+            "y2": 19.80582524271845
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb"
+        }
+      ]
+    },
+    "2": {
+      "path": "template_2.tiff",
+      "size": {
+        "width": 640,
+        "height": 480
+      },
+      "parameters": {},
+      "features": {
+        "1": {
+          "name": "sd",
+          "position": {
+            "x1": 9.404849375459222,
+            "y1": 6.407766990291263,
+            "x2": 66.77443056576047,
+            "y2": 30.873786407766993
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb"
+        }
+      ]
+    }
+  }
 }
