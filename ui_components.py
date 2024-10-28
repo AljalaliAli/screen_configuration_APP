@@ -568,6 +568,31 @@ class ConfigurationTool:
             # Redraw the image to reflect changes
             if self.selected_img_path and self.but_functions.temp_img_id: #after deleting check this condition
                 self.load_image((self.selected_img_path, self.but_functions.temp_img_id))
+   
+    def cleanup_image_deletion(self, image_id):
+        """
+        Cleans up all data related to an image after its features are deleted.
+
+        Parameters:
+        - image_id (str): The ID of the image to clean up.
+        """
+        # Delete the image entry from config_data
+        del self.config_data['images'][image_id]       
+        # Delete the physical image file
+        self.delete_image_file()
+        
+        # Clear the canvas and reset variables
+        self.clear_canvas()
+        self.but_functions.temp_img_id = None
+        self.selected_img_path = None
+        self.original_image = None
+        self.resized_img = None
+        self.image_selected = False
+
+        ##save the change to the configuration file
+        save_config_data(self.config_data, self.mde_config_file_path)
+        # Reinitialize the matcher and painter
+        self.but_functions.reload_config()
 
     def delete_selected_items(self, item_type, item_ids):
         """
@@ -585,20 +610,11 @@ class ConfigurationTool:
                         del self.config_data['images'][image_id][item_type][item_id]
                         ## if the temlate image has no features more delete every thing related to it
                         if self.config_data['images'][image_id]['features'] is None or not  self.config_data['images'][image_id]['features'] : 
-                            del self.config_data['images'][image_id]
+                             self.cleanup_image_deletion(image_id) # inside thhis functio the change in the configuration will also be saved
+                        else:    
+                            ##save the change to the configuration file
                             save_config_data(self.config_data, self.mde_config_file_path)
-                            self.delete_image_file()
-                        self.delete_image_file()
-                        # Clear the canvas and reset variables
-                        self.clear_canvas()
-                        self.but_functions.temp_img_id = None
-                        self.selected_img_path = None
-                        self.original_image = None
-                        self.resized_img = None
-                        self.image_selected = False
-                        # Reinitialize the matcher and painter
-                        self.but_functions.reload_config()
-                        self.clear_canvas()
+                                
             else:
                 print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 

@@ -22,8 +22,8 @@ def load_config_data(config_file_path):
 def save_config_data(config_data, config_file_path):
     """Saves the configuration data back to the JSON file and returns True if successful, False otherwise."""
     try:
-        print(f"[DEBUG] Attempting to save configuration data to {config_file_path}")
-        print(f"[DEBUG] Configuration data to be saved: {config_data}")
+       # print(f"[DEBUG] Attempting to save configuration data to {config_file_path}")
+        #print(f"[DEBUG] Configuration data to be saved: {config_data}")
         
         with open(config_file_path, 'w', encoding='utf-8') as file:
             json.dump(config_data, file, indent=2)
