@@ -62,10 +62,7 @@ def has_config_changed(config_data, config_file_path):
 
     return config_data != file_data
 
-
- 
-
-def add_item_to_template(template_id, category, item_data, config_data):
+'''def add_item_to_template(template_id, category, item_data, config_data):
     """
     Adds an item to the specified category in the template.
 
@@ -81,6 +78,32 @@ def add_item_to_template(template_id, category, item_data, config_data):
     template = config_data["images"][str(template_id)][category]
     item_id = str(len(template) + 1)
     template[item_id] = item_data
+    return item_id'''
+
+def add_item_to_template(template_id, category, item_data, config_data):
+    """
+    Adds an item to the specified category in the template if it does not already exist.
+
+    Parameters:
+    - template_id (str): The ID of the template.
+    - category (str): Either 'parameters' or 'features'.
+    - item_data (dict): The data of the item to be added.
+
+    Returns:
+    - str: The ID of the newly added item, or None if the item already exists.
+    """
+     
+    template = config_data["images"][str(template_id)][category]
+    
+    # Check if item_data already exists in the template
+    if item_data in template.values():
+        print(f"[Debug] {(category)[:-1]} with name '{item_data.get('name')}' already exists in template '{template_id}'")
+        return None  # Return None if item already exists
+
+    # Add the new item
+    item_id = str(len(template) + 1)
+    template[item_id] = item_data
+    print(f"[Debug] Added new {(category)[:-1]} with name '{item_data.get('name')}' to template '{template_id}'.")
     return item_id
 
 def get_next_template_id(config_data):
@@ -177,7 +200,6 @@ def create_machine_status_condition(status, conditions):
         "conditions": conditions
     }
 
-
 def add_machine_status_condition(data_input, img_temp_id, new_condition):
     """
     Adds a new machine status condition to the specified image if it doesn't already exist,
@@ -211,8 +233,6 @@ def add_machine_status_condition(data_input, img_temp_id, new_condition):
     # Return the updated data
     return data
 
-
-
 def get_possible_statuses(data_input, img_temp_id):
     """
     Returns a list of possible machine statuses for the given image template ID.
@@ -233,7 +253,6 @@ def get_possible_statuses(data_input, img_temp_id):
     
     statuses = [condition["status"] for condition in machine_status_conditions]
     return statuses
-
 
 def remove_machine_status_condition(data_input, img_temp_id, status_name):
     """
@@ -307,8 +326,6 @@ def list_machine_status_conditions(data_input, img_temp_id):
     machine_status_conditions = image.get("machine_status_conditions", [])
     return machine_status_conditions
 
- 
-
 def copy_and_rename_file(file_path, dst_dir, new_filename):
     """
     Copies and renames a file to the specified directory.
@@ -362,7 +379,6 @@ def check_and_update_json_config_file(file_path):
             print(f"JSON file '{file_path}' didn't exist. Created successfully with initial structure.")
     except Exception as e:
         print(f"Error occurred while processing '{file_path}': {e}")
-
 
 def get_temp_img_details(config_data, temp_img_id):
     """
@@ -439,69 +455,115 @@ def get_temp_img_details(config_data, temp_img_id):
         print(f"[ERROR] An error occurred: {e}")
         return {}, {}, [], None, None
 
-
-'''def get_parameters_and_features_by_id(config_data, temp_img_id):##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> to be deleted
+def get_all_image_parameters(config_data):
     """
-    Retrieves parameters and features from the JSON configuration for a given image ID.
+    Retrieves a list of dictionaries, each containing the 'name' and 'position' of each parameter 
+    across all images in the configuration data.
 
     Parameters:
-    - config_data (str or dict): 
+    - config_data (str or dict):
         - If `str`, it's treated as the file path to the JSON configuration.
         - If `dict`, it's treated as the JSON configuration data directly.
-    - temp_img_id (int or str): The image ID to retrieve data for.
 
     Returns:
-    - tuple: A tuple containing two dictionaries: parameters and features.
-             Returns empty dictionaries if the image ID is not found or an error occurs.
+    - list: A list of dictionaries, each with keys 'name' and 'position'.
+            Returns an empty list if no parameters are found or an error occurs.
     """
     try:
-        # Determine the type of config_data and load data accordingly
+        # Load JSON data from file path or use the provided dictionary
         if isinstance(config_data, str):
-            # config_data is a file path; attempt to open and load JSON data
-            with open(config_data, 'r') as file:
+            with open(config_data, 'r', encoding='utf-8') as file:
                 json_data = json.load(file)
         elif isinstance(config_data, dict):
-            # config_data is already a dictionary; use it directly
             json_data = config_data
         else:
-            # Invalid type for config_data
             raise TypeError("config_data must be either a file path (str) or a dictionary (dict).")
 
-        parameters = {}
-        features = {}
+        # Navigate to the 'images' section
+        images = json_data.get("images", {})
 
-        # Convert temp_img_id to string to ensure consistency with JSON keys
-        temp_img_id_str = str(temp_img_id)
+        if not images:
+            print("[WARNING] No 'images' key found or 'images' is empty in the configuration.")
+            return []
 
-        # Check if 'images' key exists and contains the temp_img_id
-        if "images" in json_data and temp_img_id_str in json_data["images"]:
-            image_data = json_data["images"][temp_img_id_str]
+        # Initialize a list to hold the 'name' and 'position' of each parameter
+        image_parameters = []
 
-            # Retrieve parameters if available
-            if "parameters" in image_data and isinstance(image_data["parameters"], dict):
-                parameters = image_data["parameters"]
+        for image_id, image_data in images.items():
+            # Process 'parameters'
+            parameters = image_data.get("parameters", {})
+            if not parameters:
+                print(f"[WARNING] Image ID '{image_id}' has no 'parameters' section.")
+                continue  # Skip images without 'parameters'
 
-            # Retrieve features if available
-            if "features" in image_data and isinstance(image_data["features"], dict):
-                features = image_data["features"]
-        else:
-            print(f"[WARNING] Image ID '{temp_img_id}' not found in the configuration.")
+            for param_id, param_data in parameters.items():
+                name = param_data.get("name")
+                position = param_data.get("position")
 
-        return parameters, features
+                if name and position:
+                    image_parameters.append({
+                        "name": name,
+                        "position": position
+                    })
+                else:
+                    # Identify which fields are missing
+                    missing = []
+                    if not name:
+                        missing.append("name")
+                    if not position:
+                        missing.append("position")
+                    print(f"[WARNING] Image ID '{image_id}', Parameter ID '{param_id}' is missing fields: {', '.join(missing)}")
+                    
+                    # Decide whether to skip or include with default values
+                    # Here, we'll include with default empty values
+                    image_parameters.append({
+                        "name": name if name else "",
+                        "position": position if position else {}
+                    })
+
+        return image_parameters
 
     except FileNotFoundError:
         print(f"[ERROR] The file '{config_data}' was not found.")
-        return {}, {}
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] Failed to decode JSON from '{config_data}': {e}")
-        return {}, {}
-    except TypeError as e:
-        print(f"[ERROR] {e}")
-        return {}, {}
+        return []
+    except json.JSONDecodeError:
+        print(f"[ERROR] Failed to decode JSON from '{config_data}'. Please check the file format.")
+        return []
     except Exception as e:
         print(f"[ERROR] An unexpected error occurred: {e}")
-        return {}, {}
-'''
+        return []
+
+def calculate_original_position(position, resize_percent_width, resize_percent_height, operation='/'):
+    """
+    Calculates the original position by applying the specified operation on the resize percentages.
+    Supported operations are division (default) and multiplication.
+    
+    :param position: Dictionary with position values ('x1', 'y1', 'x2', 'y2')
+    :param resize_percent_width: Width resize percentage
+    :param resize_percent_height: Height resize percentage
+    :param operation: Operation to apply ('/' for division, '*' for multiplication)
+    :return: Dictionary with calculated original positions
+    """
+    if operation == '/':
+        org_x1 = float(position['x1']) / resize_percent_width
+        org_y1 = float(position['y1']) / resize_percent_height
+        org_x2 = float(position['x2']) / resize_percent_width
+        org_y2 = float(position['y2']) / resize_percent_height
+    elif operation == '*':
+        org_x1 = float(position['x1']) * resize_percent_width
+        org_y1 = float(position['y1']) * resize_percent_height
+        org_x2 = float(position['x2']) * resize_percent_width
+        org_y2 = float(position['y2']) * resize_percent_height
+    else:
+        raise ValueError("Unsupported operation. Use '/' for division or '*' for multiplication.")
+    
+    return {
+        "x1": org_x1,
+        "y1": org_y1,
+        "x2": org_x2,
+        "y2": org_y2
+    }
+
 if __name__ == "__main__":
     print(get_possible_statuses(r'ConfigFiles\mde_config.json','40000'))
     # Create the new condition
@@ -512,4 +574,8 @@ if __name__ == "__main__":
     #print(f"new_condition:{new_condition}")
    # add_machine_status_condition(r'ConfigFiles\mde_config.json', '40000', new_condition)
     _,_,machine_status_conditions,_,_=get_temp_img_details(r'ConfigFiles\mde_config.json', '1')
-    print(f'machine_status_conditions:{machine_status_conditions}')
+   # print(f'machine_status_conditions:{machine_status_conditions}')
+    pars= get_all_image_parameters(r"ConfigFiles\mde_config.json")
+    for par in pars:
+        print(par)
+     

@@ -4,6 +4,7 @@ import os
 import threading
 from tkinter import filedialog, messagebox
 import cv2
+import json
 
 from painter import Painter
 from pattern_detection import ImageMatcher  # Import der ImageMatcher-Klasse
@@ -11,7 +12,9 @@ from helpers import (
     load_config_data,
     add_item_to_template,
     get_next_template_id,
-    save_template_image
+    save_template_image,
+    calculate_original_position,
+    get_all_image_parameters
 )
 
 class ButtonFunctions:
@@ -100,26 +103,26 @@ class ButtonFunctions:
         )
         print(f"[Debug] file_path: {file_path} ")
         if file_path:
-                self.img_path = file_path  # Speichert den ausgewählten Bildpfad global
-           # try:
-                # Bild mit OpenCV laden, um Konsistenz mit dem Matcher zu gewährleisten
-                img_cv2 = cv2.imread(file_path)
+            self.img_path = file_path  # Speichert den ausgewählten Bildpfad global
+            # try:
+            # Bild mit OpenCV laden, um Konsistenz mit dem Matcher zu gewährleisten
+            img_cv2 = cv2.imread(file_path)
 
-                if img_cv2 is None:
-                    messagebox.showerror("Fehler", "Bild konnte nicht geladen werden. Bitte wähle ein gültiges Bild aus.")
-                    return None
+            if img_cv2 is None:
+                messagebox.showerror("Fehler", "Bild konnte nicht geladen werden. Bitte wähle ein gültiges Bild aus.")
+                return None
 
-                # Vergleich des ausgewählten Bildes mit den Vorlagen
-                match_result = self.matcher.match_images(img_cv2)
-                self.temp_img_id = int(match_result[1])
+            # Vergleich des ausgewählten Bildes mit den Vorlagen
+            match_result = self.matcher.match_images(img_cv2)
+            self.temp_img_id = int(match_result[1])
 
-                # Synchronisieren mit config_tool
-                self.config_tool.temp_img_id = self.temp_img_id
+            # Synchronisieren mit config_tool
+            self.config_tool.temp_img_id = self.temp_img_id
 
-                return file_path, self.temp_img_id
+            return file_path, self.temp_img_id
 
-           # except Exception as e:
-             #   messagebox.showerror("Fehler beim Durchsuchen von Dateien", f"Bild konnte nicht geladen werden: {e}")
+            # except Exception as e:
+            #     messagebox.showerror("Fehler beim Durchsuchen von Dateien", f"Bild konnte nicht geladen werden: {e}")
         return None
 
     def draw_parameters_and_features(self, resize_percent_width, resize_percent_height, param_color, feature_color):
@@ -127,8 +130,14 @@ class ButtonFunctions:
         Zeichnet Rechtecke und Namen/IDs der Parameter und Features für die zugeordnete Vorlage.
         """
         # Verwenden der Painter-Klasse zum Zeichnen der Parameter und Features auf dem Bild
-        self.painter.draw_rectangle(
-            self.temp_img_id, resize_percent_width, resize_percent_height, param_color, feature_color
+        self.painter.draw_rectangles_around_parameters_and_screen_features(
+            self.temp_img_id,
+            resize_percent_width,
+            resize_percent_height,
+            param_color=param_color,
+            feature_color=feature_color,
+            bind_click=True,
+            click_handler=self.on_rectangle_click  # Pass the click handler here
         )
 
     def add_template(self, img_path, img_size):
@@ -175,7 +184,7 @@ class ButtonFunctions:
                 print("[ERROR] No image loaded, cannot add parameter.")
                 self.config_tool.on_parameter_addition_complete()
                 return
-    
+
             # Activate drawing mode with the specified color for parameters
             self.painter.activate_drawing(
                 add_par_but_clicked=True,
@@ -183,29 +192,29 @@ class ButtonFunctions:
                 resize_percent_height=resize_percent_height,
                 box_color=box_color
             )
-    
+
             # Wait until drawing is complete or canceled
             self.painter.drawing_complete_event.wait()
-    
+
             # Check if the operation was canceled
             if self.painter.last_rectangle is None:
                 print("[INFO] Adding parameter was canceled.")
                 # Reset the button background color
                 self.config_tool.on_parameter_addition_complete()
                 return
-    
+
             # Ensure there's at least one rectangle
             if not self.painter.last_rectangle:
                 print("[INFO] No rectangle drawn.")
                 self.config_tool.on_parameter_addition_complete()
                 return
-    
+
             # Get the parameter name and position
             par_name, par_pos = self.painter.last_rectangle.popitem()
-    
+
             # Retrieve temp_img_id from config_tool
             self.temp_img_id = self.config_tool.temp_img_id
-    
+
             if self.temp_img_id is not None:
                 self.add_parameter(self.temp_img_id, par_name, par_pos)
                 print(f"[DEBUG] Parameter '{par_name}' added to template ID: {self.temp_img_id}")
@@ -214,10 +223,10 @@ class ButtonFunctions:
             else:
                 print("[ERROR] No valid template ID found for adding parameter.")
                 self.config_tool.on_parameter_addition_complete()
-    
+
         thread = threading.Thread(target=add_parameter_thread)
         thread.start()
-    
+
     def add_screen_feature_threaded(self, img_size, resize_percent_width, resize_percent_height, box_color):
         """
         Adds a screen feature to the image in a separate thread.
@@ -228,7 +237,7 @@ class ButtonFunctions:
                 messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
                 self.config_tool.on_screen_feature_addition_complete()
                 return
-    
+
             # Activate drawing mode with the specific color for features
             self.painter.activate_drawing(
                 add_screen_feature_but_clicked=True,
@@ -236,26 +245,26 @@ class ButtonFunctions:
                 resize_percent_height=resize_percent_height,
                 box_color=box_color
             )
-    
+
             # Wait until drawing is complete or canceled
             self.painter.drawing_complete_event.wait()
-    
+
             # Check if the operation was canceled
             if self.painter.last_rectangle is None:
                 print("[INFO] Adding screen feature was canceled.")
                 # Reset the button background color
                 self.config_tool.on_screen_feature_addition_complete()
                 return
-    
+
             # Ensure there's at least one rectangle
             if not self.painter.last_rectangle:
                 print("[INFO] No rectangle drawn.")
                 self.config_tool.on_screen_feature_addition_complete()
                 return
-    
+
             # Get the feature name and position
             feature_name, feature_pos = self.painter.last_rectangle.popitem()
-    
+
             if self.config_tool.temp_img_id is None:
                 print("[ERROR] No valid template ID found for adding screen feature.")
                 self.config_tool.on_screen_feature_addition_complete()
@@ -263,23 +272,23 @@ class ButtonFunctions:
             elif self.config_tool.temp_img_id == -1:
                 # Add new template and get its ID
                 self.config_tool.temp_img_id = self.add_template(self.img_path, img_size)
-    
+
             print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}")
             self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
             # Notify ConfigurationTool that screen feature addition is complete
             self.config_tool.on_screen_feature_addition_complete()
-    
+
         thread = threading.Thread(target=add_screen_feature_thread)
         thread.start()
-   
-    def add_parameter(self, template_id, par_name, par_pos):
+
+    def add_parameter(self, template_id, par_name, par_pos):   
         """
         Fügt einen Parameter zur config.json-Datei für die gegebene Vorlage hinzu.
         """
-        config_data = self.config_data
-
+        #print(f"par_name, par_pos = {par_name}, {par_pos}")
         param_data = {"name": par_name, "position": par_pos}
-        add_item_to_template(template_id, "parameters", param_data, config_data)
+        add_item_to_template(template_id, "parameters", param_data, self.config_data)
+        
 
     def add_feature_to_config(self, template_id, feature_name, feature_pos):
         """
@@ -295,6 +304,30 @@ class ButtonFunctions:
         for item in img_canvas.find_all():
             if item != img_item:
                 img_canvas.delete(item)
+
+    def parametrs_suggestions(self, parameters_dic, resize_percent_width, resize_percent_height,
+                              _param_color="#00ff00", _param_fill_color='red', _bind_click=True,
+                              on_click_callback=None):
+        """
+        Highlights suggested parameters on the image.
+
+        :param parameters_dic: Dictionary of parameters to suggest
+        :param resize_percent_width: Width scaling factor
+        :param resize_percent_height: Height scaling factor
+        :param _param_color: Outline color for parameters
+        :param _param_fill_color: Fill color for parameters
+        :param _bind_click: Whether to bind click events
+        :param on_click_callback: Callback function for click events
+        """
+        self.painter.draw_rectangles_around_parameters(
+            parameters_dic,
+            resize_percent_width,
+            resize_percent_height,
+            param_color=_param_color,
+            param_fill_color=_param_fill_color,
+            bind_click=_bind_click,
+            click_handler=self.on_rectangle_click  # Pass the click handler here
+        )
 
     def reload_config_data(self):
         """
@@ -314,3 +347,59 @@ class ButtonFunctions:
 
         # Konfigurationsdaten neu laden
         self.reload_config_data()
+
+    # New Method: on_rectangle_click
+    def on_rectangle_click(self, event):
+        """
+        Event handler called when the rectangle or its text is clicked.
+        Toggles the fill color of the rectangle between 'red' and transparent (no fill).
+        """
+        # Access the canvas from self.img_canvas
+        canvas = self.img_canvas
+        # Get the unique tags of the clicked item
+        clicked_tags = canvas.gettags("current")
+        unique_tag = None
+        for tag in clicked_tags:
+            if tag.startswith("rect_"):
+                unique_tag = tag
+                break
+        if not unique_tag:
+            return  # No rectangle tag found
+        # Access rect_data from self.painter
+        rect_info = self.painter.rect_data.get(unique_tag)
+        if not rect_info:
+            return  # No data found for the tag
+        # Toggle the state
+        rect_info['toggle_state'] = not rect_info['toggle_state']
+        toggle_state = rect_info['toggle_state']
+
+        # Access selected_parameters_from_suggested_parameters from self.painter
+        selected_params = self.painter.selected_parameters_from_suggested_parameters
+
+
+
+        # Set fill color based on toggle state
+        if   toggle_state:
+            new_fill_color = ''      # Active fill color
+
+            par_to_add = {"name": rect_info["name"], "position": rect_info["position"]}
+            position= rect_info["position"]
+            orginal_position= calculate_original_position(position, self.painter.resize_percent_width, self.painter.resize_percent_height, operation='/')
+            # Check if par_to_add is already in the list before appending
+            if par_to_add not in selected_params:
+                selected_params.append(par_to_add)
+                self.add_parameter(self.temp_img_id, rect_info["name"], orginal_position)
+   
+           
+        else:
+            new_fill_color = 'red'         # No fill color (transparent)
+           
+            par_to_remove = {"name": rect_info["name"], "position": rect_info["position"]}
+            # Remove par_to_remove if it exists in the list
+            if par_to_remove in selected_params:
+                selected_params.remove(par_to_remove)
+
+                
+
+        # Update the rectangle's fill color
+        canvas.itemconfig(rect_info['rect_id'], fill=new_fill_color)

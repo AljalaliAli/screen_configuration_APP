@@ -1,4 +1,4 @@
-#ui_components.py
+# ui_components.py
 
 import os
 import json
@@ -11,10 +11,9 @@ from MachineStatusConditionsManager import MachineStatusConditionsManager
 from button_actions import ButtonFunctions  # Ensure this import is correct
 from styles import configure_style
 from helpers import (
-    
-    get_temp_img_details, load_config_data, save_config_data, has_config_changed,list_machine_status_conditions 
+    get_temp_img_details, load_config_data, save_config_data,
+    has_config_changed, list_machine_status_conditions, get_all_image_parameters
 )
-
 
 class ConfigurationTool:
     """
@@ -44,9 +43,9 @@ class ConfigurationTool:
         self.mde_config_file_name = mde_config_file_name
         self.templates_dir_name = templates_dir_name
         self.choices_dict = choices_dict
-
+        self.image_data= None
         self.selected_img_path = None  # Store the image path
-
+        self.parametrs_suggestions_but_toggle= False
         # Initialize the root window
         self.root = Tk()
         self.root.title('Configuration Tool')
@@ -67,12 +66,11 @@ class ConfigurationTool:
         # Initialize style
         self.style = ttk.Style()
         configure_style(self.style)  # Apply the styles defined in styles.py
- 
+
         self.image_selected = False  # Indicates whether an image is selected
 
         self.resized_img = None
         self.original_image = None
-         
 
         # Initialize parameters and machine statuses
         self.parameters = []
@@ -158,7 +156,7 @@ class ConfigurationTool:
         Prompts the user to save the configuration before exiting.
         """
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-        
+
         if not self.image_selected:
             self.root.destroy()
 
@@ -170,7 +168,7 @@ class ConfigurationTool:
                 )
 
                 if response:  # If user selects 'Yes'
- 
+
                     break  # Exit the loop after defining the status
                 else:  # If user selects 'No'
                     warning_response = messagebox.askyesno(
@@ -262,6 +260,14 @@ class ConfigurationTool:
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
 
+        # Parameter Suggestions Button
+        self.param_suggestions_but = Button(self.side_bar, text="Parameter Suggestions", command=self.parametrs_suggestions_but)
+        self.param_suggestions_but.pack(fill=X, **pad_options)
+
+        # Separator
+        separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
+        separator.pack(fill=X, padx=5, pady=10)
+
         # Define machine status
         self.define_machine_status = Button(
             self.side_bar, text="Define Machine Status",
@@ -288,7 +294,7 @@ class ConfigurationTool:
         Resets the 'Add New Parameter' button background color after parameter addition is complete or canceled.
         """
         self.add_par_but.config(bg=self.add_par_but_default_bg)
-    
+
     def on_screen_feature_addition_complete(self):
         """
         Resets the 'Add Screen Feature' button background color after screen feature addition is complete or canceled.
@@ -303,9 +309,10 @@ class ConfigurationTool:
         # Reset both buttons to their default background colors
         self.add_par_but.config(bg=self.add_par_but_default_bg)
         self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
-        
+
         # Activate the clicked button by setting its background to green
         button_to_activate.config(bg='green')
+
     # ----------------------------------
     # Image Handling
     # ----------------------------------
@@ -313,58 +320,56 @@ class ConfigurationTool:
         """
         Handles the selection and loading of an image to the canvas.
         """
-        ## Ensure that the configuration for the current image is complete before selecting a new image.
+        # Ensure that the configuration for the current image is complete before selecting a new image.
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
         if config_changed:
-                    if config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
-                            while True:
-                                response = messagebox.askyesno(
-                                    "Machine Status Required",
-                                    "Machine status is not defined. Would you like to define it now?"
-                                )
+            if config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+                while True:
+                    response = messagebox.askyesno(
+                        "Machine Status Required",
+                        "Machine status is not defined. Would you like to define it now?"
+                    )
 
-                                if response:  # If user selects 'Yes'
-                
-                                    break  # Exit the loop after defining the status
-                                else:  # If user selects 'No'
-                                    warning_response = messagebox.askyesno(
-                                        "Confirm Exit",
-                                        "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
-                                    )
-                                    if warning_response:  # If they confirm they want to exit without saving
-                                        self.root.destroy()
-                                        break  # Exit the loop and proceed with exit
-                                    # Otherwise, the loop continues, asking the user again
+                    if response:  # If user selects 'Yes'
 
+                        break  # Exit the loop after defining the status
+                    else:  # If user selects 'No'
+                        warning_response = messagebox.askyesno(
+                            "Confirm Exit",
+                            "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
+                        )
+                        if warning_response:  # If they confirm they want to exit without saving
+                            self.root.destroy()
+                            break  # Exit the loop and proceed with exit
+                        # Otherwise, the loop continues, asking the user again
 
-                    elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
-                        print("[DEBUG] Configuration has changed. Saving the changes.")
-                        save_config_data(self.config_data, self.mde_config_file_path)
-                        
-                         
-        else:  
-            self.but_functions.matcher.mde_config_data = self.config_data # update the  config_data in the matcher class
-            image_data = self.but_functions.browse_files()
-            if image_data:
+            elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+                print("[DEBUG] Configuration has changed. Saving the changes.")
+                save_config_data(self.config_data, self.mde_config_file_path)
+
+        else:
+            self.but_functions.matcher.mde_config_data = self.config_data  # update the config_data in the matcher class
+            self.image_data = self.but_functions.browse_files()
+            if self.image_data:
                 self.image_selected = True  # Set image_selected to True before loading the image
-                self.selected_img_path = image_data[0]  # Store the image path
-                self.load_image(image_data)  # Load the image first
+                self.selected_img_path = self.image_data[0]  # Store the image path
+                self.load_image()  # Load the image first
                 self.update_possible_machine_status()
-        
+
             else:
                 print("[DEBUG] No image data retrieved.")
 
-    def load_image(self, image_data):
+    def load_image(self):
         """
         Loads the selected image and sets it as the background of the canvas.
 
         Parameters:
-        - image_data (tuple): A tuple containing the image path and image ID.
+        - self.image_data (tuple): A tuple containing the image path and image ID.
         """
         # Before loading the image, clear the canvas to ensure there are no rectangles or images
         self.clear_canvas()
-        if image_data:
-            selected_img_path, img_id = image_data
+        if self.image_data:
+            selected_img_path, img_id = self.image_data
             try:
                 # Open the image using PIL
                 self.original_image = Image.open(selected_img_path)
@@ -414,13 +419,14 @@ class ConfigurationTool:
         self.but_functions.clear_canvas(self.img_canvas, "bg")
 
         # Clear machine status conditions
-        self.possible_machine_status=[]
+        self.possible_machine_status = []
         self.machine_status_conditions_manager.machine_status_conditions = []
         self.update_possible_machine_status()
         self.dropdown_label.pack_forget()
         self.status_listbox.pack_forget()
+
     # ----------------------------------
-    # Parameter abd Screen_featur Management
+    # Parameter and Screen Feature Management
     # ----------------------------------
     def add_parameter(self):
         """
@@ -429,31 +435,31 @@ class ConfigurationTool:
         """
         # Activate the 'Add New Parameter' button
         if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("Warning", "Select an image first then add screen feture then Paramter")
+            messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
             return
         if self.but_functions.temp_img_id == -1:
-            messagebox.showwarning("Warning","Add a screen feature first")
+            messagebox.showwarning("Warning", "Add a screen feature first")
             return
         self.activate_button(self.add_par_but)
-        
+
         # Start the parameter addition process
         self.but_functions.add_parameter_threaded(
             resize_percent_width=self.resize_percent_width,
             resize_percent_height=self.resize_percent_height,
             box_color="#00FF00"  # Green color for parameter box
         )
-    
+
     def add_screen_feature(self):
         """
         Initiates the process to add a new screen feature.
         Activates the 'Add Screen Feature' button.
         """
         if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("Warning","Select an image first ")
+            messagebox.showwarning("Warning", "Select an image first ")
             return
         # Activate the 'Add Screen Feature' button
         self.activate_button(self.add_screen_feature_but)
-        
+
         # Start the screen feature addition process
         self.but_functions.add_screen_feature_threaded(
             img_size={"width": self.original_image.width, "height": self.original_image.height},
@@ -461,7 +467,68 @@ class ConfigurationTool:
             resize_percent_height=self.resize_percent_height,
             box_color="#FF0000"  # Red color for feature box
         )
-    
+
+    def parametrs_suggestions_but(self):
+        """
+        Suggests parameters by highlighting them on the image.
+        """
+        # Activate the 'Add New Parameter' button
+        if self.but_functions.temp_img_id is None:
+            messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
+            return
+        if self.but_functions.temp_img_id == -1:
+            messagebox.showwarning("Warning", "Add a screen feature first")
+            return
+        
+        self.parametrs_suggestions_but_toggle= not self.parametrs_suggestions_but_toggle
+        if self.parametrs_suggestions_but_toggle:
+                # Retrieve all parameters from self.config_data
+                all_parameters_dicts_list = get_all_image_parameters(self.config_data)
+
+                # Retrieve parameters used in the current template
+                current_template_parameters, _, _, _, _ = get_temp_img_details(self.mde_config_file_path, self.but_functions.temp_img_id)
+                # Convert to list of dictionaries
+                current_template_parameters_dics_list = list(current_template_parameters.values())
+
+                # Calculate parameters not used by the current template
+                unused_parameters_dics_list = [param for param in all_parameters_dicts_list if param not in current_template_parameters_dics_list]
+                
+                self.but_functions.parametrs_suggestions(
+                    unused_parameters_dics_list,
+                    self.resize_percent_width,
+                    self.resize_percent_height,
+                    _param_color="#00ff00",
+                    _param_fill_color='red',
+                    _bind_click=True,
+                    on_click_callback=self.suggested_parameter_click_action  # Attach the callback
+                )
+        else:
+            self.load_image()  # reload Load the image  
+   
+
+    # ----------------------------------
+    # Suggested Parameter Click Action  #################### move it to button_actions module
+    # ----------------------------------
+    def suggested_parameter_click_action(self, name, position, toggle_state):
+        """
+        Action to execute when a suggested parameter rectangle is clicked,
+        allowing for custom behavior based on its toggle state.
+
+        :param name: Name of the parameter
+        :param position: Position dictionary {'x1', 'y1', 'x2', 'y2'}
+        :param toggle_state: Boolean indicating the new toggle state
+        """
+                # Calculate original position
+         
+        x1_orig = float(position['x1'])  
+        y1_orig = float(position['y1'])  
+        x2_orig = float(position['x2'])  
+        y2_orig = float(position['y2'])  
+
+        position = {'x1': x1_orig, 'y1': y1_orig, 'x2': x2_orig, 'y2': y2_orig}
+        print(f"{'Selected' if toggle_state else 'Deselected'} suggested parameter '{name}' at {position}")
+        # Implement your custom behavior here
+
     # ----------------------------------
     # Deletion Management
     # ----------------------------------
@@ -470,10 +537,11 @@ class ConfigurationTool:
         Opens a dialog to select and delete features or parameters.
         """
         if self.but_functions.temp_img_id is None or self.but_functions.temp_img_id == -1:
-            messagebox.showwarning("No Valid Image Selected", "There is no thing to delete!")
+            messagebox.showwarning("No Valid Image Selected", "There is nothing to delete!")
             return
 
         self.open_delete_dialog()
+
         
     def open_delete_dialog(self):
         """
@@ -598,7 +666,7 @@ class ConfigurationTool:
 
             # Redraw the image to reflect changes
             if self.selected_img_path and self.but_functions.temp_img_id: #after deleting check this condition
-                self.load_image((self.selected_img_path, self.but_functions.temp_img_id))
+                self.load_image()
    
     def cleanup_image_deletion(self, image_id):
         """
