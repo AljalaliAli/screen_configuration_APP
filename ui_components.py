@@ -12,8 +12,10 @@ from button_actions import ButtonFunctions  # Ensure this import is correct
 from styles import configure_style
 from helpers import (
     get_temp_img_details, load_config_data, save_config_data,
-    has_config_changed, list_machine_status_conditions, get_all_image_parameters
+    has_config_changed, list_machine_status_conditions, get_all_image_parameters,
+    get_all_parameters_with_templates, remove_duplicate_dicts,make_hashable
 )
+from parameter_selection_dialog import open_parameter_selection_dialog
 
 class ConfigurationTool:
     """
@@ -468,43 +470,70 @@ class ConfigurationTool:
             box_color="#FF0000"  # Red color for feature box
         )
 
+
     def parametrs_suggestions_but(self):
         """
         Suggests parameters by highlighting them on the image.
+        Toggles the parameter selection dialog window: opens it if it's closed,
+        and closes it if it's open.
         """
-        # Activate the 'Add New Parameter' button
+        # Check preconditions
         if self.but_functions.temp_img_id is None:
             messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
             return
         if self.but_functions.temp_img_id == -1:
             messagebox.showwarning("Warning", "Add a screen feature first")
             return
-        
-        self.parametrs_suggestions_but_toggle= not self.parametrs_suggestions_but_toggle
-        if self.parametrs_suggestions_but_toggle:
-                # Retrieve all parameters from self.config_data
-                all_parameters_dicts_list = get_all_image_parameters(self.config_data)
 
-                # Retrieve parameters used in the current template
-                current_template_parameters, _, _, _, _ = get_temp_img_details(self.mde_config_file_path, self.but_functions.temp_img_id)
-                # Convert to list of dictionaries
-                current_template_parameters_dics_list = list(current_template_parameters.values())
-
-                # Calculate parameters not used by the current template
-                unused_parameters_dics_list = [param for param in all_parameters_dicts_list if param not in current_template_parameters_dics_list]
-                
-                self.but_functions.parametrs_suggestions(
-                    unused_parameters_dics_list,
-                    self.resize_percent_width,
-                    self.resize_percent_height,
-                    _param_color="#00ff00",
-                    _param_fill_color='red',
-                    _bind_click=True,
-                    on_click_callback=self.suggested_parameter_click_action  # Attach the callback
-                )
-        else:
+        # If the dialog is already open, close it
+        if hasattr(self, 'parameter_selection_dialog') and self.parameter_selection_dialog is not None:
+            self.parameter_selection_dialog.destroy()
+            self.parameter_selection_dialog = None
             self.load_image()  # reload Load the image  
-   
+            return
+
+        # Retrieve all parameters from self.config_data, including template IDs
+        all_parameters_dicts_list = get_all_parameters_with_templates(self.config_data)
+       # print(f"[Debug] .. all_parameters_dicts_list:{all_parameters_dicts_list}")
+
+        # Retrieve parameters used in the current template
+        current_template_parameters, _, _, _, _ = get_temp_img_details(
+            self.config_data, self.but_functions.temp_img_id
+        )
+        #print(f"[Debug] .. current_template_parameters:{current_template_parameters}")
+
+        # Convert to list of dictionaries
+        current_template_parameters_dics_list = list(current_template_parameters.values())
+        #print(f"[Debug] .. current_template_parameters_dics_list:{current_template_parameters_dics_list}")
+
+        # Create a set of hashable representations of current template parameters
+        current_params_set = set(make_hashable(param) for param in current_template_parameters_dics_list)
+
+        # Exclude parameters used in the current template
+        unused_parameters_dics_list = []
+        for param in all_parameters_dicts_list:
+            # Remove 'template_id' before comparison
+            param_without_template_id = param.copy()
+            param_without_template_id.pop('template_id', None)
+            hashable_param = make_hashable(param_without_template_id)
+            if hashable_param not in current_params_set:
+                unused_parameters_dics_list.append(param)
+
+        print(f"[Debug] .. unused_parameters_dics_list:{unused_parameters_dics_list}")
+
+        if not unused_parameters_dics_list:
+            messagebox.showinfo("No Unused Parameters", "All parameters are already used in the current template.")
+            return
+
+        # Open the parameter selection dialog
+        self.parameter_selection_dialog = open_parameter_selection_dialog(
+            self.root,
+            remove_duplicate_dicts(unused_parameters_dics_list),
+            self.but_functions,
+            self.resize_percent_width,
+            self.resize_percent_height,
+            self.suggested_parameter_click_action
+        )
 
     # ----------------------------------
     # Suggested Parameter Click Action  #################### move it to button_actions module

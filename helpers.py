@@ -22,11 +22,8 @@ def load_config_data(config_file_path):
 def save_config_data(config_data, config_file_path):
     """Saves the configuration data back to the JSON file and returns True if successful, False otherwise."""
     try:
-       # print(f"[DEBUG] Attempting to save configuration data to {config_file_path}")
-        #print(f"[DEBUG] Configuration data to be saved: {config_data}")
-        
         with open(config_file_path, 'w', encoding='utf-8') as file:
-            json.dump(config_data, file, indent=2)
+            json.dump(config_data, file, ensure_ascii=False, indent=2)  # Added ensure_ascii=False
             file.flush()
         
         print(f"[INFO] Configuration data saved successfully to {config_file_path}.")
@@ -35,7 +32,7 @@ def save_config_data(config_data, config_file_path):
         print(f"[ERROR] Failed to save configuration to {config_file_path}. Error: {e}")
         messagebox.showerror("Error", f"Failed to save configuration to {config_file_path}: {e}")
         return False
-    
+
 def has_config_changed(config_data, config_file_path):
     """
     Determines whether the in-memory configuration differs from the file-based configuration.
@@ -61,24 +58,6 @@ def has_config_changed(config_data, config_file_path):
         return True  # On unexpected errors, consider it as changed
 
     return config_data != file_data
-
-'''def add_item_to_template(template_id, category, item_data, config_data):
-    """
-    Adds an item to the specified category in the template.
-
-    Parameters:
-    - template_id (str): The ID of the template.
-    - category (str): Either 'parameters' or 'features'.
-    - item_data (dict): The data of the item to be added.
-
-    Returns:
-    - str: The ID of the newly added item.
-    """
-    print(f'//////////////////////////////////template_id={template_id}/////////////////')
-    template = config_data["images"][str(template_id)][category]
-    item_id = str(len(template) + 1)
-    template[item_id] = item_data
-    return item_id'''
 
 def add_item_to_template(template_id, category, item_data, config_data):
     """
@@ -369,13 +348,13 @@ def check_and_update_json_config_file(file_path):
             file_size = os.path.getsize(file_path)
             if file_size == 0:
                 with open(file_path, 'w', encoding='utf-8') as file:
-                    json.dump({"images": {}}, file, indent=2)
+                    json.dump({"images": {}}, file, ensure_ascii=False, indent=2)  # Added ensure_ascii=False
                 print(f"JSON file '{file_path}' was empty. Updated successfully.")
             else:
                 print(f"JSON file '{file_path}' is not empty. No updates needed.")
         else:
             with open(file_path, 'w', encoding='utf-8') as file:
-                json.dump({"images": {}}, file, indent=2)
+                json.dump({"images": {}}, file, ensure_ascii=False, indent=2)  # Added ensure_ascii=False
             print(f"JSON file '{file_path}' didn't exist. Created successfully with initial structure.")
     except Exception as e:
         print(f"Error occurred while processing '{file_path}': {e}")
@@ -563,6 +542,108 @@ def calculate_original_position(position, resize_percent_width, resize_percent_h
         "x2": org_x2,
         "y2": org_y2
     }
+
+def get_all_parameters_with_templates(config_data):
+    """
+    Returns a list of all parameters from all templates, including their template IDs.
+    Each parameter dictionary includes the 'template_id' key.
+    """
+    parameters_list = []
+    images = config_data.get('images', {})
+    for image_id, image_data in images.items():
+        parameters = image_data.get('parameters', {})
+        for param_id, param_data in parameters.items():
+            param_copy = param_data.copy()
+            param_copy['template_id'] = image_id
+            parameters_list.append(param_copy)
+    return parameters_list
+
+def make_hashable(o):
+    if isinstance(o, (list, tuple)):
+        return tuple(make_hashable(e) for e in o)
+    elif isinstance(o, dict):
+        return tuple(sorted((k, make_hashable(v)) for k, v in o.items()))
+    else:
+        return o
+
+def remove_duplicate_dicts(dict_list):
+    seen = set()
+    unique_list = []
+    for d in dict_list:
+        # Create a copy of the dictionary without 'template_id'
+        d_copy = d.copy()
+        d_copy.pop('template_id', None)  # Remove 'template_id' key
+        hashable_d = make_hashable(d_copy)
+        if hashable_d not in seen:
+            seen.add(hashable_d)
+            unique_list.append(d)
+    return unique_list
+
+
+
+def remove_parameter(config_data, image_id, parameter_name, parameter_position):
+    """
+    Removes a parameter from the configuration data given image ID, parameter name, and parameter position.
+
+    Parameters:
+    - config_data: dict or str
+        The configuration data as a dictionary, or a path to the JSON file.
+    - image_id: str
+        The ID of the image from which to remove the parameter.
+    - parameter_name: str
+        The name of the parameter to remove.
+    - parameter_position: dict
+        The position dictionary with keys 'x1', 'y1', 'x2', 'y2'.
+
+    Returns:
+    - json_data: dict
+        The updated configuration data.
+    """
+    # Load JSON data from file path or use the provided dictionary
+    if isinstance(config_data, str):
+        with open(config_data, 'r', encoding='utf-8') as file:
+            json_data = json.load(file)
+    elif isinstance(config_data, dict):
+        json_data = config_data
+    else:
+        raise TypeError("config_data must be either a file path (str) or a dictionary (dict).")
+
+    # Access the images dictionary
+    images = json_data.get('images', {})
+    
+    image_data = images[str(image_id)]
+    print(f"[Debug] image_data:{image_data}")
+    if not image_data:
+        print(f"Image ID '{image_id}' not found.")
+        return json_data
+
+    # Access the parameters dictionary
+    parameters = image_data.get('parameters', {})
+    parameter_ids = list(parameters.keys())
+
+    # Iterate over the parameters to find a match
+    for param_id in parameter_ids:
+        param_data = parameters[param_id]
+        if (
+            param_data.get('name') == parameter_name and
+            param_data.get('position') == parameter_position
+        ):
+            # Remove the matching parameter
+            del parameters[param_id]
+            print(f"Removed parameter '{parameter_name}' with ID '{param_id}' from image ID '{image_id}'.")
+            break
+    else:
+        print(f"No matching parameter found in image ID '{image_id}'.")
+
+    # Save the updated configuration back to the file if a path was provided
+    if isinstance(config_data, str):
+        with open(config_data, 'w', encoding='utf-8') as file:
+            json.dump(json_data, file, indent=2)
+        print(f"Updated configuration saved to '{config_data}'.")
+
+    return json_data
+
+
 
 if __name__ == "__main__":
     print(get_possible_statuses(r'ConfigFiles\mde_config.json','40000'))

@@ -1,7 +1,7 @@
 # painter.py
 
 import threading
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 from helpers import get_temp_img_details
 
 class Painter:
@@ -29,6 +29,9 @@ class Painter:
 
         # Event to signal drawing completion
         self.drawing_complete_event = threading.Event()
+
+        # History to track the order of drawn rectangles
+        self.rect_history = []  # List to store unique_tags of drawn rectangles
 
     # Activation/Deactivation Methods
 
@@ -127,7 +130,7 @@ class Painter:
             }
 
             # Create rectangle with text and bind click events if desired
-            self.create_rectangle_with_text(
+            unique_tag = self.create_rectangle_with_text(
                 self.start_x,
                 self.start_y,
                 end_x,
@@ -148,7 +151,7 @@ class Painter:
             # User canceled, so delete the drawn rectangle
             if self.rect:
                 self.canvas.delete(self.rect)
-            self.last_rectangle = None  # Indicate cancellation
+            self.last_rectangle = {}  # Indicate cancellation
 
         self.deactivate_drawing()
         self.drawing_complete_event.set()  # Signal that drawing is complete
@@ -280,6 +283,9 @@ class Painter:
         # Bind click event if required
         self.bind_click_event(unique_tag, bind_click, click_handler)
 
+        # Track the order of rectangles
+        self.rect_history.append(unique_tag)
+
         return rect_id
 
     def draw_rectangles_around_screen_features(self, screen_features_dic, resize_percent_width, resize_percent_height,
@@ -390,3 +396,33 @@ class Painter:
             bind_click=bind_click,
             click_handler=click_handler
         )
+
+    # New Method to Remove the Last Drawn Rectangle
+
+    def remove_last_rectangle(self):
+        """
+        Removes the last drawn rectangle and its associated text from the canvas.
+        """
+        if not self.rect_history:
+            messagebox.showinfo("Info", "No rectangles to remove.")
+            return
+
+        # Get the unique_tag of the last drawn rectangle
+        unique_tag = self.rect_history.pop()
+
+        # Delete the rectangle and text using the unique_tag
+        self.canvas.delete(unique_tag)
+
+        # Remove from rect_data if it exists
+        if unique_tag in self.rect_data:
+            del self.rect_data[unique_tag]
+
+        # Optionally, remove from last_rectangle if it's the last one
+        if self.last_rectangle:
+            # Assuming last_rectangle stores the last rectangle by name
+            # You might need to adjust this based on your implementation
+            last_name = list(self.last_rectangle.keys())[-1]
+            del self.last_rectangle[last_name]
+
+        messagebox.showinfo("Success", "Last drawn rectangle has been removed.")
+

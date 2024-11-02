@@ -14,7 +14,7 @@ from helpers import (
     get_next_template_id,
     save_template_image,
     calculate_original_position,
-    get_all_image_parameters
+    get_all_image_parameters,remove_parameter
 )
 
 class ButtonFunctions:
@@ -280,15 +280,38 @@ class ButtonFunctions:
 
         thread = threading.Thread(target=add_screen_feature_thread)
         thread.start()
-
+   
     def add_parameter(self, template_id, par_name, par_pos):   
         """
         Fügt einen Parameter zur config.json-Datei für die gegebene Vorlage hinzu.
+        Verhindert das Hinzufügen von zwei Parametern mit demselben Namen zum selben Bild.
+        Zeigt eine Fehlermeldung an, wenn der Parameter bereits existiert.
         """
-        #print(f"par_name, par_pos = {par_name}, {par_pos}")
+        # Access the images dictionary
+        images = self.config_data['images']
+        image_data = images[str(template_id)]
+        if not image_data:
+            messagebox.showerror("Error", f"Image ID '{template_id}' not found.")
+            
+            return
+
+        # Access the parameters dictionary
+        parameters = image_data.get('parameters', {})
+        if parameters is None:
+            # If 'parameters' key doesn't exist, initialize it
+            parameters = {}
+            image_data['parameters'] = parameters
+
+        # Check if a parameter with the same name already exists
+        for param_id, param_data in parameters.items():
+            if param_data.get('name') == par_name:
+                messagebox.showerror("Error", f"Parameter with name '{par_name}' already exists in image ID '{template_id}'.")
+                self.painter.remove_last_rectangle()
+                return
+
+        # If not exists, proceed to add the parameter
         param_data = {"name": par_name, "position": par_pos}
         add_item_to_template(template_id, "parameters", param_data, self.config_data)
-        
 
     def add_feature_to_config(self, template_id, feature_name, feature_pos):
         """
@@ -393,12 +416,14 @@ class ButtonFunctions:
            
         else:
             new_fill_color = 'red'         # No fill color (transparent)
-           
+            position= rect_info["position"]
+            orginal_position= calculate_original_position(position, self.painter.resize_percent_width, self.painter.resize_percent_height, operation='/')
             par_to_remove = {"name": rect_info["name"], "position": rect_info["position"]}
             # Remove par_to_remove if it exists in the list
             if par_to_remove in selected_params:
                 selected_params.remove(par_to_remove)
-
+                remove_parameter(self.config_data, self.temp_img_id, rect_info["name"], orginal_position)#
+                remove_parameter(r"C:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\ConfigFiles\mde_config.json", self.temp_img_id, rect_info["name"], orginal_position)
                 
 
         # Update the rectangle's fill color
