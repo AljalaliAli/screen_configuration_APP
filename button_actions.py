@@ -423,7 +423,7 @@ class ButtonFunctions:
             if par_to_remove in selected_params:
                 selected_params.remove(par_to_remove)
                 remove_parameter(self.config_data, self.temp_img_id, rect_info["name"], orginal_position)#
-                remove_parameter(r"C:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\ConfigFiles\mde_config.json", self.temp_img_id, rect_info["name"], orginal_position)
+                remove_parameter(self.mde_config_file_path, self.temp_img_id, rect_info["name"], orginal_position)
                 
 
         # Update the rectangle's fill color

@@ -9,11 +9,11 @@ import threading
 from tkinter import Listbox, END
 from MachineStatusConditionsManager import MachineStatusConditionsManager
 from button_actions import ButtonFunctions  # Ensure this import is correct
-from styles import configure_style
+from styles import configure_style, apply_widget_styles  # Import styles from styles.py
 from helpers import (
     get_temp_img_details, load_config_data, save_config_data,
     has_config_changed, list_machine_status_conditions, get_all_image_parameters,
-    get_all_parameters_with_templates, remove_duplicate_dicts,make_hashable
+    get_all_parameters_with_templates, remove_duplicate_dicts, make_hashable
 )
 from parameter_selection_dialog import open_parameter_selection_dialog
 
@@ -45,9 +45,9 @@ class ConfigurationTool:
         self.mde_config_file_name = mde_config_file_name
         self.templates_dir_name = templates_dir_name
         self.choices_dict = choices_dict
-        self.image_data= None
+        self.image_data = None
         self.selected_img_path = None  # Store the image path
-        self.parametrs_suggestions_but_toggle= False
+        self.parametrs_suggestions_but_toggle = False
         # Initialize the root window
         self.root = Tk()
         self.root.title('Configuration Tool')
@@ -58,7 +58,7 @@ class ConfigurationTool:
         screen_height = self.root.winfo_screenheight()
 
         # Set the main window geometry to fit the screen, minus the taskbar
-        self.root.geometry(f"{screen_width}x{screen_height - 40}")
+        self.root.geometry(f"{int(screen_width - (screen_width * 0.05))}x{int(screen_height - (screen_height * 0.10))}")
 
         # Bind the on_closing method to the window close event
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -125,6 +125,21 @@ class ConfigurationTool:
         # Now add the sidebar widgets since all dependencies are initialized
         self.add_sidebar_widgets()
 
+    def apply_geometry(self):
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        if self.use_reduced_geometry:
+            self.root.geometry(f"{int(screen_width - (screen_width * 0.10))}x{int(screen_height - (screen_height * 0.10))}")
+        else:
+            self.root.geometry(f"{screen_width}x{screen_height - 40}")
+
+    def toggle_geometry(self, event=None):
+        # Toggle the flag
+        self.use_reduced_geometry = not self.use_reduced_geometry
+        # Apply the new geometry
+        self.apply_geometry()
+        
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """
         Ensure that the config directory, templates directory, and config.json file exist.
@@ -519,7 +534,7 @@ class ConfigurationTool:
             if hashable_param not in current_params_set:
                 unused_parameters_dics_list.append(param)
 
-        print(f"[Debug] .. unused_parameters_dics_list:{unused_parameters_dics_list}")
+       # print(f"[Debug] .. unused_parameters_dics_list:{unused_parameters_dics_list}")
 
         if not unused_parameters_dics_list:
             messagebox.showinfo("No Unused Parameters", "All parameters are already used in the current template.")
