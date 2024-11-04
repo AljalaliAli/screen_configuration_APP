@@ -504,7 +504,8 @@ class ConfigurationTool:
         if hasattr(self, 'parameter_selection_dialog') and self.parameter_selection_dialog is not None:
             self.parameter_selection_dialog.destroy()
             self.parameter_selection_dialog = None
-            self.load_image()  # reload Load the image  
+            self.load_image()  # reload Load the image 
+            self.update_possible_machine_status() 
             return
 
         # Retrieve all parameters from self.config_data, including template IDs
@@ -711,6 +712,7 @@ class ConfigurationTool:
             # Redraw the image to reflect changes
             if self.selected_img_path and self.but_functions.temp_img_id: #after deleting check this condition
                 self.load_image()
+                self.update_possible_machine_status()
    
     def cleanup_image_deletion(self, image_id):
         """
