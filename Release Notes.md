@@ -1,4 +1,9 @@
 # Release Notes
+## Update V0.0.4
+1. Added parameter suggestion button to suggest possible parameters.
+2. It is no longer allowed to add parameters with the same name to the same template.
+3. Fixed issue with German characters (ä, ö, ü).
+
 ## Bugfix Update V0.4.3
 ### Fixes:
 1. Fix application crash when deleting a screen feature
