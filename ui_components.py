@@ -125,6 +125,8 @@ class ConfigurationTool:
         # Now add the sidebar widgets since all dependencies are initialized
         self.add_sidebar_widgets()
 
+        self.hide_parameters_and_features_toggle=False
+
     def apply_geometry(self):
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -306,6 +308,18 @@ class ConfigurationTool:
         self.status_listbox.pack(fill=X, padx=5, pady=10)
         self.status_listbox.pack_forget()  # Hide initially
 
+        # Separator for machine status labels
+        separator_status = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
+        separator_status.pack(fill=X, padx=5, pady=10)
+        
+        
+        # Create the button
+        self.hide_parameters_and_features_button = Button(self.side_bar, text="Hide Boxes", 
+                                                          command=self.hide_parameters_and_features_but_fun)
+        self.hide_parameters_and_features_button.pack(fill=X, **pad_options)
+
+
+
     def on_parameter_addition_complete(self):
         """
         Resets the 'Add New Parameter' button background color after parameter addition is complete or canceled.
@@ -365,18 +379,22 @@ class ConfigurationTool:
                 save_config_data(self.config_data, self.mde_config_file_path)
 
         else:
+           
             self.but_functions.matcher.mde_config_data = self.config_data  # update the config_data in the matcher class
             self.image_data = self.but_functions.browse_files()
             if self.image_data:
                 self.image_selected = True  # Set image_selected to True before loading the image
                 self.selected_img_path = self.image_data[0]  # Store the image path
+                
+                self.but_functions.painter.rect_history = []
                 self.load_image()  # Load the image first
                 self.update_possible_machine_status()
+                
 
             else:
                 print("[DEBUG] No image data retrieved.")
 
-    def load_image(self):
+    def load_image(self, draw_parameters_and_features=True):
         """
         Loads the selected image and sets it as the background of the canvas.
 
@@ -416,14 +434,14 @@ class ConfigurationTool:
                 # Calculate the scaling factors based on the image resize
                 self.resize_percent_width = canvas_width / original_width
                 self.resize_percent_height = canvas_height / original_height
-
-                # Draw parameters (green) and features (red) with scaling
-                self.but_functions.draw_parameters_and_features(
-                    self.resize_percent_width,
-                    self.resize_percent_height,
-                    param_color="#00ff00",
-                    feature_color="#ff0000"
-                )
+                if draw_parameters_and_features:
+                    # Draw parameters (green) and features (red) with scaling
+                    self.but_functions.draw_parameters_and_features(
+                        self.resize_percent_width,
+                        self.resize_percent_height,
+                        param_color="#00ff00",
+                        feature_color="#ff0000"
+                    )
 
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to display image: {e}")
@@ -504,8 +522,10 @@ class ConfigurationTool:
         if hasattr(self, 'parameter_selection_dialog') and self.parameter_selection_dialog is not None:
             self.parameter_selection_dialog.destroy()
             self.parameter_selection_dialog = None
+            self.but_functions.painter.rect_history = []
             self.load_image()  # reload Load the image 
             self.update_possible_machine_status() 
+           
             return
 
         # Retrieve all parameters from self.config_data, including template IDs
@@ -711,9 +731,10 @@ class ConfigurationTool:
 
             # Redraw the image to reflect changes
             if self.selected_img_path and self.but_functions.temp_img_id: #after deleting check this condition
+                self.but_functions.painter.rect_history = []
                 self.load_image()
                 self.update_possible_machine_status()
-   
+           
     def cleanup_image_deletion(self, image_id):
         """
         Cleans up all data related to an image after its features are deleted.
@@ -806,7 +827,29 @@ class ConfigurationTool:
             self.but_functions.reload_config()
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
-            
+
+
+    def hide_parameters_and_features_but_fun(self):
+        # Toggle the state
+        self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
+        
+        # Check the state and update button properties
+        if self.hide_parameters_and_features_toggle:
+            self.hide_parameters_and_features_button.config(text="Display Boxes", bg="green")
+            self.but_functions.painter.rect_history = []
+            self.load_image(draw_parameters_and_features=False)  # Load the image first
+            self.update_possible_machine_status()
+        else:
+            self.hide_parameters_and_features_button.config(text="Hide Boxes", bg=self.hide_parameters_and_features_button.cget("highlightbackground"))
+            # Draw parameters (green) and features (red) with scaling
+            self.but_functions.draw_parameters_and_features(
+                self.resize_percent_width,
+                self.resize_percent_height,
+                param_color="#00ff00",
+                feature_color="#ff0000"
+            )
+        
+
     def delete_template_data(self):
         """
         Deletes the template data from the config_data.

@@ -62,6 +62,8 @@ class ButtonFunctions:
 
         # Painter-Klasse initialisieren
         self.painter = Painter(img_canvas, self.config_data)
+   
+
 
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """

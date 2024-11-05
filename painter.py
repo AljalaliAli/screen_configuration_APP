@@ -284,7 +284,9 @@ class Painter:
         self.bind_click_event(unique_tag, bind_click, click_handler)
 
         # Track the order of rectangles
-        self.rect_history.append(unique_tag)
+       # self.rect_history.append(unique_tag)
+        self.rect_history.append((name, x1, y1, x2, y2))
+
 
         return rect_id
 
