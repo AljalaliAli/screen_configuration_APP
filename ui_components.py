@@ -176,8 +176,10 @@ class ConfigurationTool:
         Prompts the user to save the configuration before exiting.
         """
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-      #  print(f"[Debud] config_changed = {config_changed}")
-       # print(f"[Debud] self.config_data = {self.config_data}")
+        print(f'<o o>'*30)
+        print(f"[Debud] config_changed = {config_changed}")
+        print(f"[Debud] self.config_data = {self.config_data}")
+        print(f'<o o>'*30)
 
         if not self.image_selected:
             self.root.destroy()
@@ -371,6 +373,7 @@ class ConfigurationTool:
                         )
                         if warning_response:  # If they confirm they want to exit without saving
                             self.reload_config()# reload the configuration 
+                            
                             self.delete_image_file()# delete the image file
                             
                             self._load_and_update_image()
@@ -796,7 +799,8 @@ class ConfigurationTool:
         ##save the change to the configuration file
         save_config_data(self.config_data, self.mde_config_file_path)
         # Reinitialize the matcher and painter
-        self.but_functions.reload_config()
+       # self.but_functions.reload_config()
+        self.reload_config()
 
     def delete_selected_items(self, item_type, item_ids):
         """
@@ -861,7 +865,8 @@ class ConfigurationTool:
             self.update_possible_machine_status()
 
             # Reinitialize the matcher and painter
-            self.config_data= self.but_functions.reload_config()
+            #self.config_data= self.but_functions.reload_config()
+            self.reload_config()
             print(f'<Debug> self.config_data: {self.config_data}')
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
@@ -975,7 +980,7 @@ class ConfigurationTool:
         Reloads the config.json file after adding a new screen feature or parameter.
         """
         # Call reload_config method of ButtonFunctions
-        self.but_functions.reload_config()
+        self.config_data= self.but_functions.reload_config()
   
     # ----------------------------------
     # Main Event Loop
