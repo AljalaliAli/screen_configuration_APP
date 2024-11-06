@@ -890,13 +890,13 @@ class ConfigurationTool:
             self.update_possible_machine_status()
         else:
             self.hide_parameters_and_features_button.config(text="Hide Boxes", bg=self.hide_parameters_and_features_button.cget("highlightbackground"))
-            # Draw parameters (green) and features (red) with scaling
-            self.but_functions.draw_parameters_and_features(
+            self.load_image(draw_parameters_and_features=True)
+            '''self.but_functions.draw_parameters_and_features(
                 self.resize_percent_width,
                 self.resize_percent_height,
                 param_color="#00ff00",
                 feature_color="#ff0000"
-            )
+            )'''
         
 
     def delete_template_data(self):
