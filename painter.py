@@ -376,6 +376,7 @@ class Painter:
         :param click_handler: External click handler function
         """
         # Draw rectangles for parameters
+       # print(f"[Debug] draw_rectangles_around_parameters_and_screen_features called!")
         parameters_dic, _, _, _, _ = get_temp_img_details(self.config_data, temp_img_id)
         self.draw_rectangles_around_parameters(
             parameters_dic,

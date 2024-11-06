@@ -58,6 +58,10 @@ class MachineStatusConditionsManager:
         Args:
             current_config_data: The current configuration data.
         """
+        #print(f'#'*60)
+        #print(f"[Debug] define_machine_status called!")
+        #print(f"self.config_data:{self.config_data}")
+        #print(f'#'*60)
         if not self.but_functions:
             messagebox.showerror("Configuration Error", "Button functions are not defined.")
             return

@@ -275,8 +275,11 @@ class ButtonFunctions:
                 # Add new template and get its ID
                 self.config_tool.temp_img_id = self.add_template(self.img_path, img_size)
 
-            print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}")
+          #  print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_tool.config_data:{self.config_tool.config_data} ")
+            
             self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
+
+            print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_tool.config_data:{self.config_tool.config_data} ")
             # Notify ConfigurationTool that screen feature addition is complete
             self.config_tool.on_screen_feature_addition_complete()
 
@@ -359,6 +362,7 @@ class ButtonFunctions:
         Lädt die Konfigurationsdaten aus der JSON-Datei neu.
         """
         self.config_data = load_config_data(self.mde_config_file_path)
+        return self.config_data
 
     def reload_config(self):
         """
@@ -372,6 +376,7 @@ class ButtonFunctions:
 
         # Konfigurationsdaten neu laden
         self.reload_config_data()
+        return self.config_data 
 
     # New Method: on_rectangle_click
     def on_rectangle_click(self, event):

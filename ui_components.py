@@ -2,6 +2,7 @@
 
 import os
 import json
+import glob
 from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
@@ -175,6 +176,8 @@ class ConfigurationTool:
         Prompts the user to save the configuration before exiting.
         """
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
+      #  print(f"[Debud] config_changed = {config_changed}")
+       # print(f"[Debud] self.config_data = {self.config_data}")
 
         if not self.image_selected:
             self.root.destroy()
@@ -195,6 +198,7 @@ class ConfigurationTool:
                         "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
                     )
                     if warning_response:  # If they confirm they want to exit without saving
+                        self.delete_image_file()
                         self.root.destroy()
                         break  # Exit the loop and proceed with exit
                     # Otherwise, the loop continues, asking the user again
@@ -283,6 +287,10 @@ class ConfigurationTool:
         self.param_suggestions_but = Button(self.side_bar, text="Parameter Suggestions", command=self.parametrs_suggestions_but)
         self.param_suggestions_but.pack(fill=X, **pad_options)
 
+        # Create the button
+        self.hide_parameters_and_features_button = Button(self.side_bar, text="Hide Boxes", 
+                                                          command=self.hide_parameters_and_features_but_fun)
+        self.hide_parameters_and_features_button.pack(fill=X, **pad_options)
         # Separator
         separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=10)
@@ -308,16 +316,7 @@ class ConfigurationTool:
         self.status_listbox.pack(fill=X, padx=5, pady=10)
         self.status_listbox.pack_forget()  # Hide initially
 
-        # Separator for machine status labels
-        separator_status = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
-        separator_status.pack(fill=X, padx=5, pady=10)
-        
-        
-        # Create the button
-        self.hide_parameters_and_features_button = Button(self.side_bar, text="Hide Boxes", 
-                                                          command=self.hide_parameters_and_features_but_fun)
-        self.hide_parameters_and_features_button.pack(fill=X, **pad_options)
-
+ 
 
 
     def on_parameter_addition_complete(self):
@@ -353,6 +352,7 @@ class ConfigurationTool:
         """
         # Ensure that the configuration for the current image is complete before selecting a new image.
         config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
+        print(f'[Debug] config_changed: {config_changed}')
         if config_changed:
             if config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
                 while True:
@@ -370,17 +370,26 @@ class ConfigurationTool:
                             "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
                         )
                         if warning_response:  # If they confirm they want to exit without saving
-                            self.root.destroy()
+                            self.reload_config()# reload the configuration 
+                            self.delete_image_file()# delete the image file
+                            
+                            self._load_and_update_image()
                             break  # Exit the loop and proceed with exit
                         # Otherwise, the loop continues, asking the user again
 
             elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
                 print("[DEBUG] Configuration has changed. Saving the changes.")
                 save_config_data(self.config_data, self.mde_config_file_path)
+                self._load_and_update_image()
 
         else:
-           
-            self.but_functions.matcher.mde_config_data = self.config_data  # update the config_data in the matcher class
+          # self.but_functions.matcher.mde_config_data = self.config_data  # update the config_data in the matcher class
+           self._load_and_update_image()
+
+
+
+    def _load_and_update_image(self):
+            
             self.image_data = self.but_functions.browse_files()
             if self.image_data:
                 self.image_selected = True  # Set image_selected to True before loading the image
@@ -389,8 +398,6 @@ class ConfigurationTool:
                 self.but_functions.painter.rect_history = []
                 self.load_image()  # Load the image first
                 self.update_possible_machine_status()
-                
-
             else:
                 print("[DEBUG] No image data retrieved.")
 
@@ -510,61 +517,92 @@ class ConfigurationTool:
         Toggles the parameter selection dialog window: opens it if it's closed,
         and closes it if it's open.
         """
-        # Check preconditions
-        if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
-            return
-        if self.but_functions.temp_img_id == -1:
-            messagebox.showwarning("Warning", "Add a screen feature first")
+        # Check preconditions before proceeding
+        if not self._validate_preconditions():
             return
 
         # If the dialog is already open, close it
-        if hasattr(self, 'parameter_selection_dialog') and self.parameter_selection_dialog is not None:
-            self.parameter_selection_dialog.destroy()
-            self.parameter_selection_dialog = None
-            self.but_functions.painter.rect_history = []
-            self.load_image()  # reload Load the image 
-            self.update_possible_machine_status() 
-           
+        if self._is_dialog_open():
+            self._close_dialog()
             return
 
+        # Retrieve unused parameters and open the selection dialog
+        unused_parameters = self._get_unused_parameters()
+        if not unused_parameters:
+            messagebox.showinfo("No Unused Parameters", "All parameters are already used in the current template.")
+            return
+
+        # Open the parameter selection dialog with unused parameters
+        self._open_parameter_selection_dialog(unused_parameters)
+
+    # Helper methods to modularize the main function
+    def _validate_preconditions(self):
+        """
+        Validates the preconditions to ensure an image and screen feature have been selected.
+        """
+        if self.but_functions.temp_img_id is None:
+            messagebox.showwarning("Warning", "Select an image first, then add a screen feature, then add parameters.")
+            return False
+        if self.but_functions.temp_img_id == -1:
+            messagebox.showwarning("Warning", "Add a screen feature first.")
+            return False
+        return True
+
+    def _is_dialog_open(self):
+        """
+        Checks if the parameter selection dialog is currently open.
+        """
+        return hasattr(self, 'parameter_selection_dialog') and self.parameter_selection_dialog is not None
+
+    def _close_dialog(self):
+        """
+        Closes the parameter selection dialog and resets relevant states.
+        """
+        self.parameter_selection_dialog.destroy()
+        self.parameter_selection_dialog = None
+        self.but_functions.painter.rect_history = []
+        self.load_image()  # Reload the image  
+        self.update_possible_machine_status()  # Update machine status information
+
+    def _get_unused_parameters(self):
+        """
+        Retrieves the list of parameters that are not used in the current template.
+        """
+        print(f"[Debug] _get_unused_parameters called!")
         # Retrieve all parameters from self.config_data, including template IDs
         all_parameters_dicts_list = get_all_parameters_with_templates(self.config_data)
-       # print(f"[Debug] .. all_parameters_dicts_list:{all_parameters_dicts_list}")
 
         # Retrieve parameters used in the current template
         current_template_parameters, _, _, _, _ = get_temp_img_details(
             self.config_data, self.but_functions.temp_img_id
         )
-        #print(f"[Debug] .. current_template_parameters:{current_template_parameters}")
 
-        # Convert to list of dictionaries
+        # Convert current template parameters to a list of dictionaries
         current_template_parameters_dics_list = list(current_template_parameters.values())
-        #print(f"[Debug] .. current_template_parameters_dics_list:{current_template_parameters_dics_list}")
 
         # Create a set of hashable representations of current template parameters
         current_params_set = set(make_hashable(param) for param in current_template_parameters_dics_list)
 
-        # Exclude parameters used in the current template
+        # Find parameters that are not used in the current template
         unused_parameters_dics_list = []
         for param in all_parameters_dicts_list:
-            # Remove 'template_id' before comparison
+            # Remove 'template_id' before comparison to avoid mismatches
             param_without_template_id = param.copy()
             param_without_template_id.pop('template_id', None)
             hashable_param = make_hashable(param_without_template_id)
             if hashable_param not in current_params_set:
                 unused_parameters_dics_list.append(param)
 
-       # print(f"[Debug] .. unused_parameters_dics_list:{unused_parameters_dics_list}")
+        # Remove duplicate parameter dictionaries before returning
+        return remove_duplicate_dicts(unused_parameters_dics_list)
 
-        if not unused_parameters_dics_list:
-            messagebox.showinfo("No Unused Parameters", "All parameters are already used in the current template.")
-            return
-
-        # Open the parameter selection dialog
+    def _open_parameter_selection_dialog(self, unused_parameters):
+        """
+        Opens the parameter selection dialog with the list of unused parameters.
+        """
         self.parameter_selection_dialog = open_parameter_selection_dialog(
             self.root,
-            remove_duplicate_dicts(unused_parameters_dics_list),
+            unused_parameters,
             self.but_functions,
             self.resize_percent_width,
             self.resize_percent_height,
@@ -807,10 +845,9 @@ class ConfigurationTool:
 
         if result:
             # Delete the image file
-            self.delete_image_file()
+            self.delete_image_file()   
             # Delete from config_data
             self.delete_template_data()
-
             # Clear the canvas and reset variables
             self.clear_canvas()
             self.but_functions.temp_img_id = None
@@ -824,12 +861,19 @@ class ConfigurationTool:
             self.update_possible_machine_status()
 
             # Reinitialize the matcher and painter
-            self.but_functions.reload_config()
+            self.config_data= self.but_functions.reload_config()
+            print(f'<Debug> self.config_data: {self.config_data}')
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
 
 
     def hide_parameters_and_features_but_fun(self):
+        if self.but_functions.temp_img_id is None:
+           # messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
+            return
+        if self.but_functions.temp_img_id == -1:
+           # messagebox.showwarning("Warning", "Add a screen feature first")
+            return
         # Toggle the state
         self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
         
@@ -864,19 +908,27 @@ class ConfigurationTool:
             print("[DEBUG] Invalid temp_img_id (-1), no data to delete.")
 
 
+
     def delete_image_file(self):
         """
         Deletes the image file associated with the current template.
+        Supports multiple image formats (e.g., tiff, jpg, png).
         """
         try:
             if self.but_functions.temp_img_id != -1:
-                template_image_name = f"template_{self.but_functions.temp_img_id}.png"
-                template_image_path = os.path.join(self.but_functions.templates_dir, template_image_name)
-
-                if os.path.exists(template_image_path):
-                    os.remove(template_image_path)
+                # Use glob to match any image file with the template ID
+                template_image_pattern = f"template_{self.but_functions.temp_img_id}.*"
+                template_image_path_pattern = os.path.join(self.but_functions.templates_dir, template_image_pattern)
+                
+                # Get all matching image files (e.g., tiff, jpg, png)
+                matching_files = glob.glob(template_image_path_pattern)
+                
+                if matching_files:
+                    for file_path in matching_files:
+                        os.remove(file_path)
+                        print(f"[DEBUG] Deleted image file: {file_path}")
                 else:
-                    print(f"[DEBUG] Image file {template_image_path} does not exist.")
+                    print(f"[DEBUG] No matching image files found for pattern: {template_image_path_pattern}")
             else:
                 print("[DEBUG] Invalid temp_img_id (-1), no image file to delete.")
         except Exception as e:
@@ -889,6 +941,7 @@ class ConfigurationTool:
         Handles special characters like German umlauts correctly.
         """
         # Fetch machine status conditions from the configuration
+        print(f"[Debug] update_possible_machine_status called!")
         _, _, self.machine_status_conditions_manager.machine_status_conditions, _, _ = get_temp_img_details(
             self.mde_config_file_path, self.but_functions.temp_img_id
         )
