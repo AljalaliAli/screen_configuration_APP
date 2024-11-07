@@ -1,63 +1,9 @@
 
 import shutil
-import configparser
-import ast
 import json
 import os
 from PIL import Image
-from tkinter import messagebox
 
-
-def load_config_data(config_file_path):
-    """Loads the configuration data from the JSON file."""
-    try:
-        with open(config_file_path, 'r', encoding='utf-8') as file:
-            data = json.load(file)
-        print("[INFO] Configuration data loaded successfully.")
-        return data
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to load configuration: {e}")
-        return {"images": {}}  # Return empty structure on failure
-
-def save_config_data(config_data, config_file_path):
-    """Saves the configuration data back to the JSON file and returns True if successful, False otherwise."""
-    try:
-        with open(config_file_path, 'w', encoding='utf-8') as file:
-            json.dump(config_data, file, ensure_ascii=False, indent=2)  # Added ensure_ascii=False
-            file.flush()
-        
-        print(f"[INFO] Configuration data saved successfully to {config_file_path}.")
-        return True
-    except Exception as e:
-        print(f"[ERROR] Failed to save configuration to {config_file_path}. Error: {e}")
-        messagebox.showerror("Error", f"Failed to save configuration to {config_file_path}: {e}")
-        return False
-
-def has_config_changed(config_data, config_file_path):
-    """
-    Determines whether the in-memory configuration differs from the file-based configuration.
-
-    Parameters:
-    - config_data (dict): The in-memory configuration data.
-    - config_file_path (str): The file path to the JSON configuration file.
-
-    Returns:
-    - bool: True if the configurations differ, False otherwise.
-    """
-    try:
-        with open(config_file_path, 'r', encoding='utf-8') as file:
-            file_data = json.load(file)
-    except FileNotFoundError:
-        print(f"Error: The file '{config_file_path}' does not exist.")
-        return True  # If file doesn't exist, consider it as changed
-    except json.JSONDecodeError as e:
-        print(f"Error: Failed to parse JSON file '{config_file_path}'.\n{e}")
-        return True  # If JSON is invalid, consider it as changed
-    except Exception as e:
-        print(f"An unexpected error occurred while reading '{config_file_path}': {e}")
-        return True  # On unexpected errors, consider it as changed
-
-    return config_data != file_data
 
 def add_item_to_template(template_id, category, item_data, config_data):
     """
@@ -80,29 +26,31 @@ def add_item_to_template(template_id, category, item_data, config_data):
         return None  # Return None if item already exists
 
     # Add the new item
-    item_id = str(len(template) + 1)
+    item_id = get_next_available_id(template)#str(len(template) + 1)
     template[item_id] = item_data
     print(f"[Debug] Added new {(category)[:-1]} with name '{item_data.get('name')}' to template '{template_id}'.")
     return item_id
 
-def get_next_template_id(config_data):
-        """Calculates the next available template ID."""
-        if isinstance(config_data, str):
-                with open(config_data, 'r', encoding='utf-8') as file:
-                    config_data = json.load(file)
 
-        if 'images' not in config_data:
-            raise ValueError("The provided input does not contain the 'images' key.")
+def get_next_available_id(items_dict):
+    """
+    Calculates the next available ID from a dictionary of items.
+    
+    Args:
+        items_dict (dict): A dictionary where keys are IDs represented as strings.
+    
+    Returns:
+        str: The next available ID as a string, or "1" if the dictionary is empty.
+    """
+    try:
+        if items_dict:
+            return str(int(max(map(int, items_dict.keys())))+1)
+        else:
+            return "1"
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
-        items_dict  = config_data['images'] 
-        try:
-            if items_dict:
-                return str(int(max(map(int, items_dict.keys())))+1)
-            else:
-                return "1"
-        except Exception as e:
-            print(f"Error: {e}")
-            return None
 
 def save_template_image(img_path, templates_dir, new_template_id):
     """Saves the template image to the templates directory with its original extension."""

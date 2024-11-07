@@ -1,9 +1,8 @@
 import colorsys
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import Any, Callable, Dict, List, Optional
 from config_manager import ConfigData
-from helpers import get_temp_img_details, save_config_data
+from helpers import get_temp_img_details
 
 
 class MachineStatusConditionsManager:

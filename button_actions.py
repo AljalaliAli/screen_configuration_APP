@@ -9,12 +9,11 @@ from config_manager import ConfigData
 from painter import Painter
 from pattern_detection import ImageMatcher  # Import der ImageMatcher-Klasse
 from helpers import (
-    load_config_data,
     add_item_to_template,
-    get_next_template_id,
+    get_next_available_id,
     save_template_image,
     calculate_original_position,
-    get_all_image_parameters,remove_parameter
+   remove_parameter
 )
 
 class ButtonFunctions:
@@ -156,7 +155,7 @@ class ButtonFunctions:
         - int: Die neue Vorlagen-ID.
         """
         # Vorlagen-ID ermitteln
-        new_template_id = get_next_template_id(self.config_data_1)
+        new_template_id = get_next_available_id(self.config_data_1['images'])
 
         # Bild im Vorlagenverzeichnis speichern
         template_image_name = save_template_image(img_path, self.templates_dir, new_template_id)

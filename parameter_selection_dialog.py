@@ -4,14 +4,11 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import (
     Toplevel, Label, Frame, Canvas, Scrollbar, BOTH, BooleanVar,
-    Checkbutton, Button, messagebox, VERTICAL, LEFT, RIGHT, X, Y, NW
+    Checkbutton, messagebox, VERTICAL, LEFT, X
 )
 from functools import partial
-import colorsys  # Ensure colorsys is imported for dynamic colors
 from styles import (
-    configure_style, 
-    apply_widget_styles, 
-    
+    configure_style,   
     PARAMETER_COLOR, 
     PARAMETER_FILL_COLOR, 
     MAIN_BACKGROUND  # Import MAIN_BACKGROUND

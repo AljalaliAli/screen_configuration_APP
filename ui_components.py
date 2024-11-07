@@ -6,14 +6,13 @@ import glob
 from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
-import threading
 from tkinter import Listbox, END
 from MachineStatusConditionsManager import MachineStatusConditionsManager
 from button_actions import ButtonFunctions  # Ensure this import is correct
-from styles import configure_style, apply_widget_styles  # Import styles from styles.py
+from styles import configure_style  # Import styles from styles.py
 from helpers import (
-    get_temp_img_details, load_config_data, save_config_data,
-    has_config_changed, list_machine_status_conditions, get_all_image_parameters,
+    get_temp_img_details,
+    list_machine_status_conditions,
     get_all_parameters_with_templates, remove_duplicate_dicts, make_hashable
 )
 from parameter_selection_dialog import open_parameter_selection_dialog
