@@ -327,13 +327,13 @@ class ButtonFunctions:
         feature_data = {"name": feature_name, "position": feature_pos}
         add_item_to_template(template_id, "features", feature_data, self.config_data_1)
 
-    def clear_canvas(self, img_canvas, img_item):
+    '''def clear_canvas(self, img_canvas, img_item):
         """
         Löscht das Canvas, außer dem geladenen Bild.
         """
         for item in img_canvas.find_all():
             if item != img_item:
-                img_canvas.delete(item)
+                img_canvas.delete(item)'''
 
     def parametrs_suggestions(self, parameters_dic, resize_percent_width, resize_percent_height,
                               _param_color="#00ff00", _param_fill_color='red', _bind_click=True,
@@ -432,8 +432,8 @@ class ButtonFunctions:
             # Remove par_to_remove if it exists in the list
             if par_to_remove in selected_params:
                 selected_params.remove(par_to_remove)
-                remove_parameter(self.config_data_1, self.temp_img_id, rect_info["name"], orginal_position)#
-                remove_parameter(self.mde_config_file_path, self.temp_img_id, rect_info["name"], orginal_position)
+                remove_parameter(self.config_data_1, self.temp_img_id, rect_info["name"], orginal_position)#remove the par from the dict
+                remove_parameter(self.mde_config_file_path, self.temp_img_id, rect_info["name"], orginal_position)# remove the par from thr json file
                 
 
         # Update the rectangle's fill color

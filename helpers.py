@@ -562,8 +562,8 @@ def remove_parameter(config_data, image_id, parameter_name, parameter_position):
     # Access the images dictionary
     images = json_data.get('images', {})
     
-    image_data = images[str(image_id)]
-    print(f"[Debug] image_data:{image_data}")
+    image_data = images.get(str(image_id))
+    print(f"[Debug] image_data: {image_data}")
     if not image_data:
         print(f"Image ID '{image_id}' not found.")
         return json_data
@@ -574,15 +574,16 @@ def remove_parameter(config_data, image_id, parameter_name, parameter_position):
 
     # Iterate over the parameters to find a match
     for param_id in parameter_ids:
-        param_data = parameters[param_id]
-        if (
-            param_data.get('name') == parameter_name and
-            param_data.get('position') == parameter_position
-        ):
-            # Remove the matching parameter
-            del parameters[param_id]
-            print(f"Removed parameter '{parameter_name}' with ID '{param_id}' from image ID '{image_id}'.")
-            break
+        param_data = parameters.get(param_id)
+        if param_data:
+            if (
+                param_data.get('name') == parameter_name and
+                param_data.get('position') == parameter_position
+            ):
+                # Remove the matching parameter
+                del parameters[param_id]
+                print(f"Removed parameter '{parameter_name}' with ID '{param_id}' from image ID '{image_id}'.")
+                break
     else:
         print(f"No matching parameter found in image ID '{image_id}'.")
 

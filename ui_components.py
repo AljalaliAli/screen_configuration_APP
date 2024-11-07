@@ -452,14 +452,15 @@ class ConfigurationTool:
         """
         Clears the canvas except for the background image.
         """
-        self.but_functions.clear_canvas(self.img_canvas, "bg")
-
+        #self.but_functions.clear_canvas(self.img_canvas, "bg")
+        #self.but_functions.clear_canvas(self.img_canvas, "bg")
+        self.img_canvas.delete("all")# Löscht das gesamte Canvas, einschließlich des geladenen Bildes.
         # Clear machine status conditions
-        self.possible_machine_status = []
-        self.machine_status_conditions_manager.machine_status_conditions = []
-        self.update_possible_machine_status()
-        self.dropdown_label.pack_forget()
-        self.status_listbox.pack_forget()
+      #  self.possible_machine_status = []
+       # self.machine_status_conditions_manager.machine_status_conditions = []
+        #self.update_possible_machine_status()
+        #self.dropdown_label.pack_forget()
+        #self.status_listbox.pack_forget()
 
     # ----------------------------------
     # Parameter and Screen Feature Management
@@ -857,35 +858,7 @@ class ConfigurationTool:
             print(f'<Debug> self.config_data_1: {self.config_data_1}')
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
-
-    def hide_parameters_and_features_but_fun(self):
-        if self.but_functions.temp_img_id is None:
-           # messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
-            return
-        if self.but_functions.temp_img_id == -1:
-           # messagebox.showwarning("Warning", "Add a screen feature first")
-            return
-        # Toggle the state
-        self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
-       # print(f'<o o>'*30)
-        #print(f"self.but_functions.temp_img_id:{self.but_functions.temp_img_id}, self.but_functions.painter.rect_history: ")
-        #print(f'<o o>'*30)
-        # Check the state and update button properties
-        if self.hide_parameters_and_features_toggle:
-            self.hide_parameters_and_features_button.config(text="Display Boxes", bg="green")
-            self.but_functions.painter.rect_history = []
-            self.load_image(draw_parameters_and_features=False)  # Load the image first
-            self.update_possible_machine_status()
-        else:
-            self.hide_parameters_and_features_button.config(text="Hide Boxes", bg=self.hide_parameters_and_features_button.cget("highlightbackground"))
-            self.load_image(draw_parameters_and_features=True)
-            '''self.but_functions.draw_parameters_and_features(
-                self.resize_percent_width,
-                self.resize_percent_height,
-                param_color="#00ff00",
-                feature_color="#ff0000"
-            )'''
-        
+     
     def delete_template_data(self):
         """
         Deletes the template data from the config_data.
@@ -961,7 +934,37 @@ class ConfigurationTool:
             self.dropdown_label.pack_forget()
             self.status_listbox.pack_forget()
   
-
+    # ----------------------------------
+    # Hide and show Paramters and Screen-features
+    # ----------------------------------
+    def hide_parameters_and_features_but_fun(self):
+        if self.but_functions.temp_img_id is None:
+           # messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
+            return
+        if self.but_functions.temp_img_id == -1:
+           # messagebox.showwarning("Warning", "Add a screen feature first")
+            return
+        # Toggle the state
+        self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
+       # print(f'<o o>'*30)
+        #print(f"self.but_functions.temp_img_id:{self.but_functions.temp_img_id}, self.but_functions.painter.rect_history: ")
+        #print(f'<o o>'*30)
+        # Check the state and update button properties
+        if self.hide_parameters_and_features_toggle:
+            self.hide_parameters_and_features_button.config(text="Display Boxes", bg="green")
+            self.but_functions.painter.rect_history = []
+            self.load_image(draw_parameters_and_features=False)  # Load the image first
+            self.update_possible_machine_status()
+        else:
+            self.hide_parameters_and_features_button.config(text="Hide Boxes", bg=self.hide_parameters_and_features_button.cget("highlightbackground"))
+            self.load_image(draw_parameters_and_features=True)
+            '''self.but_functions.draw_parameters_and_features(
+                self.resize_percent_width,
+                self.resize_percent_height,
+                param_color="#00ff00",
+                feature_color="#ff0000"
+            )'''
+   
     # ----------------------------------
     # Main Event Loop
     # ----------------------------------
