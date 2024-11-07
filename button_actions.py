@@ -280,6 +280,8 @@ class ButtonFunctions:
             self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
 
             print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_tool.config_data:{self.config_tool.config_data} ")
+            self.painter.config_data= self.config_data
+            print(f'self.painter.config_data: {self.painter.config_data}')
             # Notify ConfigurationTool that screen feature addition is complete
             self.config_tool.on_screen_feature_addition_complete()
 

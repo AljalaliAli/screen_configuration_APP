@@ -128,20 +128,12 @@ class ConfigurationTool:
 
         self.hide_parameters_and_features_toggle=False
 
-    def apply_geometry(self):
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
-        if self.use_reduced_geometry:
-            self.root.geometry(f"{int(screen_width - (screen_width * 0.10))}x{int(screen_height - (screen_height * 0.10))}")
-        else:
-            self.root.geometry(f"{screen_width}x{screen_height - 40}")
-
-    def toggle_geometry(self, event=None):
-        # Toggle the flag
-        self.use_reduced_geometry = not self.use_reduced_geometry
-        # Apply the new geometry
-        self.apply_geometry()
+    def reload_config(self):
+        """
+        Reloads the config.json file after adding a new screen feature or parameter.
+        """ 
+        # Call reload_config method of ButtonFunctions
+        self.config_data= self.but_functions.reload_config()
         
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """
@@ -318,9 +310,6 @@ class ConfigurationTool:
         self.status_listbox.pack(fill=X, padx=5, pady=10)
         self.status_listbox.pack_forget()  # Hide initially
 
- 
-
-
     def on_parameter_addition_complete(self):
         """
         Resets the 'Add New Parameter' button background color after parameter addition is complete or canceled.
@@ -388,8 +377,6 @@ class ConfigurationTool:
         else:
           # self.but_functions.matcher.mde_config_data = self.config_data  # update the config_data in the matcher class
            self._load_and_update_image()
-
-
 
     def _load_and_update_image(self):
             
@@ -512,7 +499,6 @@ class ConfigurationTool:
             resize_percent_height=self.resize_percent_height,
             box_color="#FF0000"  # Red color for feature box
         )
-
 
     def parametrs_suggestions_but(self):
         """
@@ -647,8 +633,7 @@ class ConfigurationTool:
             return
 
         self.open_delete_dialog()
-
-        
+    
     def open_delete_dialog(self):
         """
         Opens a dialog window for deleting features or parameters.
@@ -871,7 +856,6 @@ class ConfigurationTool:
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
 
-
     def hide_parameters_and_features_but_fun(self):
         if self.but_functions.temp_img_id is None:
            # messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
@@ -881,7 +865,9 @@ class ConfigurationTool:
             return
         # Toggle the state
         self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
-        
+        print(f'<o o>'*30)
+        print(f"self.but_functions.temp_img_id:{self.but_functions.temp_img_id}, self.but_functions.painter.rect_history: ")
+        print(f'<o o>'*30)
         # Check the state and update button properties
         if self.hide_parameters_and_features_toggle:
             self.hide_parameters_and_features_button.config(text="Display Boxes", bg="green")
@@ -898,7 +884,6 @@ class ConfigurationTool:
                 feature_color="#ff0000"
             )'''
         
-
     def delete_template_data(self):
         """
         Deletes the template data from the config_data.
@@ -911,8 +896,6 @@ class ConfigurationTool:
                     save_config_data(self.config_data, self.mde_config_file_path)
         else:
             print("[DEBUG] Invalid temp_img_id (-1), no data to delete.")
-
-
 
     def delete_image_file(self):
         """
@@ -975,13 +958,7 @@ class ConfigurationTool:
             self.dropdown_label.pack_forget()
             self.status_listbox.pack_forget()
   
-    def reload_config(self):
-        """
-        Reloads the config.json file after adding a new screen feature or parameter.
-        """
-        # Call reload_config method of ButtonFunctions
-        self.config_data= self.but_functions.reload_config()
-  
+
     # ----------------------------------
     # Main Event Loop
     # ----------------------------------
