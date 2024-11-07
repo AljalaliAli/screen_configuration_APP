@@ -5,7 +5,7 @@ import threading
 from tkinter import filedialog, messagebox
 import cv2
 import json
-
+from config_manager import ConfigData
 from painter import Painter
 from pattern_detection import ImageMatcher  # Import der ImageMatcher-Klasse
 from helpers import (
@@ -52,16 +52,17 @@ class ButtonFunctions:
         )
 
         # Konfigurationsdaten einmal laden
-        self.config_data = config_tool.config_data
+        #self.config_data = config_tool.config_data
+        self.config_data_1 = ConfigData(self.mde_config_file_path).config_data
 
         # Threading-Lock für config_data
-        self.config_data_lock = threading.Lock()
+        #self.config_data_lock = threading.Lock()
 
         # ImageMatcher-Objekt für den Bildvergleich erstellen
         self.matcher = ImageMatcher(mde_config_dir, mde_config_file_name, templates_dir_name)
 
         # Painter-Klasse initialisieren
-        self.painter = Painter(img_canvas, self.config_data)
+        self.painter = Painter(img_canvas, self.mde_config_file_path)
    
 
 
@@ -155,13 +156,13 @@ class ButtonFunctions:
         - int: Die neue Vorlagen-ID.
         """
         # Vorlagen-ID ermitteln
-        new_template_id = get_next_template_id(self.config_data)
+        new_template_id = get_next_template_id(self.config_data_1)
 
         # Bild im Vorlagenverzeichnis speichern
         template_image_name = save_template_image(img_path, self.templates_dir, new_template_id)
 
         # Metadaten der Vorlage zur config_data hinzufügen
-        self.config_data["images"][str(new_template_id)] = {
+        self.config_data_1["images"][str(new_template_id)] = {
             "path": template_image_name,
             "size": {"width": img_size["width"], "height": img_size["height"]},
             "parameters": {},
@@ -279,9 +280,9 @@ class ButtonFunctions:
             
             self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
 
-            print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_tool.config_data:{self.config_tool.config_data} ")
-            self.painter.config_data= self.config_data
-            print(f'self.painter.config_data: {self.painter.config_data}')
+            print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_data_1:{self.config_data_1} ")
+           # self.painter.config_data= self.config_data
+            print(f'self.config_data_1: {self.config_data_1}')
             # Notify ConfigurationTool that screen feature addition is complete
             self.config_tool.on_screen_feature_addition_complete()
 
@@ -295,7 +296,7 @@ class ButtonFunctions:
         Zeigt eine Fehlermeldung an, wenn der Parameter bereits existiert.
         """
         # Access the images dictionary
-        images = self.config_data['images']
+        images = self.config_data_1['images']
         image_data = images[str(template_id)]
         if not image_data:
             messagebox.showerror("Error", f"Image ID '{template_id}' not found.")
@@ -318,14 +319,14 @@ class ButtonFunctions:
 
         # If not exists, proceed to add the parameter
         param_data = {"name": par_name, "position": par_pos}
-        add_item_to_template(template_id, "parameters", param_data, self.config_data)
+        add_item_to_template(template_id, "parameters", param_data, self.config_data_1)
 
     def add_feature_to_config(self, template_id, feature_name, feature_pos):
         """
         Fügt ein Feature zur config.json-Datei für die gegebene Vorlage hinzu.
         """
         feature_data = {"name": feature_name, "position": feature_pos}
-        add_item_to_template(template_id, "features", feature_data, self.config_data)
+        add_item_to_template(template_id, "features", feature_data, self.config_data_1)
 
     def clear_canvas(self, img_canvas, img_item):
         """
@@ -359,14 +360,14 @@ class ButtonFunctions:
             click_handler=self.on_rectangle_click  # Pass the click handler here
         )
 
-    def reload_config_data(self):
+    '''def reload_config_data(self):
         """
         Lädt die Konfigurationsdaten aus der JSON-Datei neu.
         """
         self.config_data = load_config_data(self.mde_config_file_path)
-        return self.config_data
+        return self.config_data'''
 
-    def reload_config(self):
+    def reset_matcher_and_painter(self):
         """
         Lädt die Konfiguration neu, indem der Matcher, der Painter und die config_data neu initialisiert werden.
         """
@@ -374,11 +375,12 @@ class ButtonFunctions:
         self.matcher = ImageMatcher(
             self.mde_config_dir, self.mde_config_file_name, self.templates_dir_name
         )
-        self.painter = Painter(self.img_canvas, self.config_data)
+        #self.painter = Painter(self.img_canvas, self.config_data)
+        self.painter = Painter(self.img_canvas, self.mde_config_file_path)
 
         # Konfigurationsdaten neu laden
-        self.reload_config_data()
-        return self.config_data 
+        #self.reload_config_data()
+        #return self.config_data 
 
     # New Method: on_rectangle_click
     def on_rectangle_click(self, event):
@@ -431,7 +433,7 @@ class ButtonFunctions:
             # Remove par_to_remove if it exists in the list
             if par_to_remove in selected_params:
                 selected_params.remove(par_to_remove)
-                remove_parameter(self.config_data, self.temp_img_id, rect_info["name"], orginal_position)#
+                remove_parameter(self.config_data_1, self.temp_img_id, rect_info["name"], orginal_position)#
                 remove_parameter(self.mde_config_file_path, self.temp_img_id, rect_info["name"], orginal_position)
                 
 

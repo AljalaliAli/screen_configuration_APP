@@ -2,7 +2,7 @@ import colorsys
 import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import Any, Callable, Dict, List, Optional
-
+from config_manager import ConfigData
 from helpers import get_temp_img_details, save_config_data
 
 
@@ -40,23 +40,25 @@ class MachineStatusConditionsManager:
         self.width = width
         self.height = height
         self.mde_config_file_path = mde_config_file_path
+        self.config= ConfigData(self.mde_config_file_path)
+        self.config_data_1 = self.config.config_data
         self.but_functions = but_functions
         self.choices_dict = choices_dict or {}
         self.name_to_key = name_to_key or {}
         self.condition_groups = []
         self.parameters = []
         self.status_conditions_manager_window = None
-        self.config_data = None
+        #self.config_data = None
         self.machine_status_conditions = default_conditions or []
         self.is_machine_status_defined = False
         self.on_submit_callback = on_submit_callback
 
-    def define_machine_status(self, current_config_data):
+
+    def define_machine_status(self):
         """
         Opens the Machine Status Conditions Manager window and sets up the UI based on parameters.
 
-        Args:
-            current_config_data: The current configuration data.
+
         """
         #print(f'#'*60)
         #print(f"[Debug] define_machine_status called!")
@@ -66,8 +68,8 @@ class MachineStatusConditionsManager:
             messagebox.showerror("Configuration Error", "Button functions are not defined.")
             return
 
-        self.config_data = current_config_data
-        if not self.config_data:
+       # self.config_data = current_config_data
+        if not self.config_data_1:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
         if self.but_functions.temp_img_id is None:
@@ -78,9 +80,8 @@ class MachineStatusConditionsManager:
              messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
              return
         
-        parameters, _, _, _, _ = get_temp_img_details(
-            self.config_data, self.but_functions.temp_img_id
-        )
+        parameters, _, _, _, _ = get_temp_img_details(self.config_data_1, self.but_functions.temp_img_id)
+
         self.parameters = [item["name"] for item in parameters.values()]
         self.has_parameters = bool(self.parameters)
 
@@ -756,14 +757,14 @@ class MachineStatusConditionsManager:
             all_selected_params.append({"status": status_name, "conditions": conditions})
 
         self.machine_status_conditions = all_selected_params
-        if not self.config_data:
+        if not self.config_data_1:
             messagebox.showerror("Error", "Configuration data could not be loaded.")
             return
 
         image_id = str(self.but_functions.temp_img_id)
-        self.config_data["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
+        self.config_data_1["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
 
-        if save_config_data(self.config_data, self.mde_config_file_path):
+        if self.config.save_config_data():#save_config_data(self.config_data, self.mde_config_file_path):
             self.is_machine_status_defined = True
 
         if self.on_submit_callback:
@@ -781,16 +782,16 @@ class MachineStatusConditionsManager:
             return
 
         self.machine_status_conditions = [{"status": selected_status}]
-        if self.config_data:
+        if self.config_data_1:
             image_id = str(self.but_functions.temp_img_id)
             
             # Check if temp_img_id is valid
             if image_id != '-1':
-                if image_id not in self.config_data["images"]:
-                    self.config_data["images"][image_id] = {}
+                if image_id not in self.config_data_1["images"]:
+                    self.config_data_1["images"][image_id] = {}
                 
-                self.config_data["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
-                if save_config_data(self.config_data, self.mde_config_file_path):
+                self.config_data_1["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
+                if self.config.save_config_data():#save_config_data(self.config_data, self.mde_config_file_path):
                     self.is_machine_status_defined = True
             else:
                 messagebox.showwarning("Invalid Image ID", "Cannot save machine status with temp_img_id = -1.")

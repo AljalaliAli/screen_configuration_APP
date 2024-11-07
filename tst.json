@@ -1,272 +1,287 @@
 {
   "images": {
-      "40000": {
-          "path": "template_40000.png",
-          "size": {
-              "width": 512,
-              "height": 512
-          },
-          "parameters": {
-              "1": {
-                  "name": "x1",
-                  "position": {
-                      "x1": 166.71438596491228,
-                      "y1": 84.8,
-                      "x2": 271.98877192982457,
-                      "y2": 111.46666666666667
-                  }
-              },
-              "2": {
-                  "name": "x2",
-                  "position": {
-                      "x1": 84.28136330674401,
-                      "y1": 153.6,
-                      "x2": 154.08266860043508,
-                      "y2": 192.53333333333333
-                  }
-              },
-              "3": {
-                  "name": "x3",
-                  "position": {
-                      "x1": 172.64684554024655,
-                      "y1": 161.06666666666666,
-                      "x2": 249.87382160986223,
-                      "y2": 192.53333333333333
-                  }
-              }
-          },
-          "features": {
-              "1": {
-                  "name": "aus1",
-                  "position": {
-                      "x1": 95.2140350877193,
-                      "y1": 60.266666666666666,
-                      "x2": 194.380350877193,
-                      "y2": 81.6
-                  }
-              },
-              "2": {
-                  "name": "aus2",
-                  "position": {
-                      "x1": 282.7677192982456,
-                      "y1": 62.4,
-                      "x2": 353.5494736842105,
-                      "y2": 84.26666666666667
-                  }
-              }
-          },
-          "machine_status_conditions": [
-              {
-                  "status": "Produktiv im Automatikbetrieb",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "*"
-                          },
-                          {
-                              "parameter": "S",
-                              "operator": ">",
-                              "value": 0
-                          }
-                      ]
-                  }
-              },
-              {
-                  "status": "Läuft nicht",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "MIN"
-                          },
-                          {
-                              "operator": "AND",
-                              "operands": [
-                                  {
-                                      "parameter": "run",
-                                      "operator": "=",
-                                      "value": "manuell"
-                                  },
-                                  {
-                                      "parameter": "temperature",
-                                      "operator": "<=",
-                                      "value": 50
-                                  }
-                              ]
-                          }
-                      ]
-                  }
-              },
-              {
-                  "status": "Maintenance Required",
-                  "conditions": {
-                      "operator": "AND",
-                      "operands": [
-                          {
-                              "parameter": "error_code",
-                              "operator": "=",
-                              "value": "E101"
-                          },
-                          {
-                              "parameter": "run",
-                              "operator": "!=",
-                              "value": "running"
-                          }
-                      ]
-                  }
-              }
-          ]
+    "40000": {
+      "path": "template_40000.png",
+      "size": {
+        "width": 512,
+        "height": 512
       },
-      "1": {
-          "path": "template_1.png",
-          "size": {
-              "width": 512,
-              "height": 512
-          },
-          "parameters": {},
-          "features": {
-              "1": {
-                  "name": "ss",
-                  "position": {
-                      "x1": 107.07087719298245,
-                      "y1": 246.4,
-                      "x2": 155.21684210526317,
-                      "y2": 265.06666666666666
-                  }
-              }
-          },
-          "machine_status_conditions": [
-              {
-                  "status": "Produktiv im Automatikbetrieb",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "*"
-                          },
-                          {
-                              "parameter": "S",
-                              "operator": ">",
-                              "value": 0
-                          }
-                      ]
-                  }
-              },
-              {
-                  "status": "Läuft nicht",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "MIN"
-                          },
-                          {
-                              "operator": "AND",
-                              "operands": [
-                                  {
-                                      "parameter": "run",
-                                      "operator": "=",
-                                      "value": "manuell"
-                                  },
-                                  {
-                                      "parameter": "temperature",
-                                      "operator": "<=",
-                                      "value": 50
-                                  }
-                              ]
-                          }
-                      ]
-                  }
-              }
-          ]
+      "parameters": {
+        "1": {
+          "name": "x1",
+          "position": {
+            "x1": 166.71438596491228,
+            "y1": 84.8,
+            "x2": 271.98877192982457,
+            "y2": 111.46666666666667
+          }
+        },
+        "2": {
+          "name": "x2",
+          "position": {
+            "x1": 84.28136330674401,
+            "y1": 153.6,
+            "x2": 154.08266860043508,
+            "y2": 192.53333333333333
+          }
+        },
+        "3": {
+          "name": "x3",
+          "position": {
+            "x1": 172.64684554024655,
+            "y1": 161.06666666666666,
+            "x2": 249.87382160986223,
+            "y2": 192.53333333333333
+          }
+        }
       },
-      "2": {
-          "path": "template_2.png",
-          "size": {
-              "width": 1024,
-              "height": 768
-          },
-          "parameters": {
-              "1": {
-                  "name": "run",
-                  "position": {
-                      "x1": 81.96821659799882,
-                      "y1": 658.7076923076922,
-                      "x2": 94.62507357268981,
-                      "y2": 677.1692307692307
-                  }
-              }
-          },
-          "features": {
-              "1": {
-                  "name": "an1",
-                  "position": {
-                      "x1": 8.437904649793996,
-                      "y1": 9.6,
-                      "y2": 63.5076923076923
-                  }
-              }
-          },
-          "machine_status_conditions": [
+      "features": {
+        "1": {
+          "name": "aus1",
+          "position": {
+            "x1": 95.2140350877193,
+            "y1": 60.266666666666666,
+            "x2": 194.380350877193,
+            "y2": 81.6
+          }
+        },
+        "2": {
+          "name": "aus2",
+          "position": {
+            "x1": 282.7677192982456,
+            "y1": 62.4,
+            "x2": 353.5494736842105,
+            "y2": 84.26666666666667
+          }
+        },
+        "3": {
+          "name": "new_feature",
+          "position": {
+            "x1": 100,
+            "y1": 150,
+            "x2": 200,
+            "y2": 250
+          }
+        },
+        "4": {
+          "name": "new_feature_added",
+          "position": {
+            "x1": 120,
+            "y1": 180,
+            "x2": 220,
+            "y2": 280
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
               {
-                  "status": "Produktiv im Automatikbetrieb",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "*"
-                          },
-                          {
-                              "parameter": "S",
-                              "operator": ">",
-                              "value": 0
-                          }
-                      ]
-                  }
+                "parameter": "run",
+                "operator": "=",
+                "value": "*"
               },
               {
-                  "status": "Läuft nicht",
-                  "conditions": {
-                      "operator": "OR",
-                      "operands": [
-                          {
-                              "parameter": "run",
-                              "operator": "=",
-                              "value": "MIN"
-                          },
-                          {
-                              "operator": "AND",
-                              "operands": [
-                                  {
-                                      "parameter": "run",
-                                      "operator": "=",
-                                      "value": "manuell"
-                                  },
-                                  {
-                                      "parameter": "temperature",
-                                      "operator": "<=",
-                                      "value": 50
-                                  }
-                              ]
-                          }
-                      ]
-                  }
+                "parameter": "S",
+                "operator": ">",
+                "value": 0
               }
-          ]
-      }
+            ]
+          }
+        },
+        {
+          "status": "Läuft nicht",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
+              {
+                "parameter": "run",
+                "operator": "=",
+                "value": "MIN"
+              },
+              {
+                "operator": "AND",
+                "operands": [
+                  {
+                    "parameter": "run",
+                    "operator": "=",
+                    "value": "manuell"
+                  },
+                  {
+                    "parameter": "temperature",
+                    "operator": "<=",
+                    "value": 50
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "status": "Maintenance Required",
+          "conditions": {
+            "operator": "AND",
+            "operands": [
+              {
+                "parameter": "error_code",
+                "operator": "=",
+                "value": "E101"
+              },
+              {
+                "parameter": "run",
+                "operator": "!=",
+                "value": "running"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "1": {
+      "path": "template_1.png",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "parameters": {},
+      "features": {
+        "1": {
+          "name": "ss",
+          "position": {
+            "x1": 107.07087719298245,
+            "y1": 246.4,
+            "x2": 155.21684210526317,
+            "y2": 265.06666666666666
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
+              {
+                "parameter": "run",
+                "operator": "=",
+                "value": "*"
+              },
+              {
+                "parameter": "S",
+                "operator": ">",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "status": "Läuft nicht",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
+              {
+                "parameter": "run",
+                "operator": "=",
+                "value": "MIN"
+              },
+              {
+                "operator": "AND",
+                "operands": [
+                  {
+                    "parameter": "run",
+                    "operator": "=",
+                    "value": "manuell"
+                  },
+                  {
+                    "parameter": "temperature",
+                    "operator": "<=",
+                    "value": 50
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "2": {
+      "path": "template_2.png",
+      "size": {
+        "width": 1024,
+        "height": 768
+      },
+      "parameters": {
+        "1": {
+          "name": "run",
+          "position": {
+            "x1": 81.96821659799882,
+            "y1": 658.7076923076922,
+            "x2": 94.62507357268981,
+            "y2": 677.1692307692307
+          }
+        }
+      },
+      "features": {
+        "1": {
+          "name": "an1",
+          "position": {
+            "x1": 8.437904649793996,
+            "y1": 9.6,
+            "y2": 63.5076923076923
+          }
+        }
+      },
+      "machine_status_conditions": [
+        {
+          "status": "Produktiv im Automatikbetrieb",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
+              {
+                "parameter": "run",
+                "operator": "=",
+                "value": "*"
+              },
+              {
+                "parameter": "S",
+                "operator": ">",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "status": "Läuft nicht",
+          "conditions": {
+            "operator": "OR",
+            "operands": [
+              {
+                "parameter": "run",
+                "operator": "=",
+                "value": "MIN"
+              },
+              {
+                "operator": "AND",
+                "operands": [
+                  {
+                    "parameter": "run",
+                    "operator": "=",
+                    "value": "manuell"
+                  },
+                  {
+                    "parameter": "temperature",
+                    "operator": "<=",
+                    "value": 50
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
   }
 }
-
-
-

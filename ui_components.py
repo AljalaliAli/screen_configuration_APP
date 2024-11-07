@@ -17,6 +17,7 @@ from helpers import (
     get_all_parameters_with_templates, remove_duplicate_dicts, make_hashable
 )
 from parameter_selection_dialog import open_parameter_selection_dialog
+from config_manager import ConfigData
 
 class ConfigurationTool:
     """
@@ -88,7 +89,9 @@ class ConfigurationTool:
 
         # Load configuration data once
         self.mde_config_file_path = os.path.join(mde_config_dir, mde_config_file_name)
-        self.config_data = load_config_data(self.mde_config_file_path)
+        #self.config_data = load_config_data(self.mde_config_file_path)
+        self.config= ConfigData(self.mde_config_file_path)
+        self.config_data_1 = self.config.config_data
 
         # Create the user interface without adding sidebar widgets yet
         self.create_ui(screen_width, screen_height)
@@ -101,8 +104,8 @@ class ConfigurationTool:
             templates_dir_name=self.templates_dir_name,
             config_tool=self
         )
-        self.but_functions.config_data = self.config_data  # Share config_data
-        self.but_functions.config_data_lock = threading.Lock()
+       # self.but_functions.config_data = self.config_data  # Share config_data
+      #  self.but_functions.config_data_lock = threading.Lock()
 
         # Define your default machine_status_conditions
         default_machine_status_conditions = None
@@ -128,12 +131,12 @@ class ConfigurationTool:
 
         self.hide_parameters_and_features_toggle=False
 
-    def reload_config(self):
+    def reset_matcher_and_painter(self):
         """
         Reloads the config.json file after adding a new screen feature or parameter.
         """ 
-        # Call reload_config method of ButtonFunctions
-        self.config_data= self.but_functions.reload_config()
+        # Call reset_matcher_and_painter method of ButtonFunctions
+        self.but_functions.reset_matcher_and_painter()
         
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """
@@ -167,16 +170,16 @@ class ConfigurationTool:
         Handles the window close event.
         Prompts the user to save the configuration before exiting.
         """
-        config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
-        print(f'<o o>'*30)
-        print(f"[Debud] config_changed = {config_changed}")
-        print(f"[Debud] self.config_data = {self.config_data}")
-        print(f'<o o>'*30)
+        config_changed = self.config.has_config_changed()#has_config_changed(self.config_data, self.mde_config_file_path)
+       # print(f'<o o>'*30)
+        #print(f"[Debud] config_changed = {config_changed}")
+        #print(f"[Debud] self.config_data_1 = {self.config_data_1}")
+        #print(f'<o o>'*30)
 
         if not self.image_selected:
             self.root.destroy()
 
-        elif config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+        elif config_changed and not list_machine_status_conditions(self.config_data_1, self.but_functions.temp_img_id):
             while True:
                 response = messagebox.askyesno(
                     "Machine Status Required",
@@ -197,9 +200,10 @@ class ConfigurationTool:
                         break  # Exit the loop and proceed with exit
                     # Otherwise, the loop continues, asking the user again
 
-        elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+        elif config_changed and list_machine_status_conditions(self.config_data_1, self.but_functions.temp_img_id):
             print("[DEBUG] Configuration has changed. Saving the changes.")
-            save_config_data(self.config_data, self.mde_config_file_path)
+            self.config.save_config_data()
+           # save_config_data(self.config_data, self.mde_config_file_path)
             self.root.destroy()
         elif not config_changed:
             print("[DEBUG] Configuration has not changed. Exiting without saving.")
@@ -262,8 +266,8 @@ class ConfigurationTool:
         separator.pack(fill=X, padx=5, pady=10)
 
         # Button to clear the canvas
-        clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
-        clear_canvas_but.pack(fill=X, **pad_options)
+      #  clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
+       # clear_canvas_but.pack(fill=X, **pad_options)
 
         # Button to delete features or parameters
         self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters", command=self.delete_items)
@@ -292,7 +296,7 @@ class ConfigurationTool:
         # Define machine status
         self.define_machine_status = Button(
             self.side_bar, text="Define Machine Status",
-            command=lambda: self.machine_status_conditions_manager.define_machine_status(self.config_data)
+            command=lambda: self.machine_status_conditions_manager.define_machine_status()
         )
         self.define_machine_status.pack(fill=X, **pad_options)
 
@@ -342,10 +346,10 @@ class ConfigurationTool:
         Handles the selection and loading of an image to the canvas.
         """
         # Ensure that the configuration for the current image is complete before selecting a new image.
-        config_changed = has_config_changed(self.config_data, self.mde_config_file_path)
+        config_changed = self.config.has_config_changed() #has_config_changed(self.config_data, self.mde_config_file_path)
         print(f'[Debug] config_changed: {config_changed}')
         if config_changed:
-            if config_changed and not list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+            if config_changed and not list_machine_status_conditions(self.config_data_1, self.but_functions.temp_img_id):
                 while True:
                     response = messagebox.askyesno(
                         "Machine Status Required",
@@ -361,7 +365,7 @@ class ConfigurationTool:
                             "If you proceed without defining the machine status, the screen feature for this image will not be saved. Do you want to continue?"
                         )
                         if warning_response:  # If they confirm they want to exit without saving
-                            self.reload_config()# reload the configuration 
+                            self.reset_matcher_and_painter()# reload the configuration 
                             
                             self.delete_image_file()# delete the image file
                             
@@ -369,9 +373,10 @@ class ConfigurationTool:
                             break  # Exit the loop and proceed with exit
                         # Otherwise, the loop continues, asking the user again
 
-            elif config_changed and list_machine_status_conditions(self.config_data, self.but_functions.temp_img_id):
+            elif config_changed and list_machine_status_conditions(self.config_data_1, self.but_functions.temp_img_id):
                 print("[DEBUG] Configuration has changed. Saving the changes.")
-                save_config_data(self.config_data, self.mde_config_file_path)
+                self.config.save_config_data()
+                #save_config_data(self.config_data, self.mde_config_file_path)
                 self._load_and_update_image()
 
         else:
@@ -559,11 +564,11 @@ class ConfigurationTool:
         """
         print(f"[Debug] _get_unused_parameters called!")
         # Retrieve all parameters from self.config_data, including template IDs
-        all_parameters_dicts_list = get_all_parameters_with_templates(self.config_data)
+        all_parameters_dicts_list = get_all_parameters_with_templates(self.config_data_1)
 
         # Retrieve parameters used in the current template
         current_template_parameters, _, _, _, _ = get_temp_img_details(
-            self.config_data, self.but_functions.temp_img_id
+            self.config_data_1, self.but_functions.temp_img_id
         )
 
         # Convert current template parameters to a list of dictionaries
@@ -720,12 +725,8 @@ class ConfigurationTool:
         Returns:
         - dict: A dictionary of items from the configuration.
         """
-        # Access shared config_data with thread safety
-        with self.but_functions.config_data_lock:
-            data = self.config_data
-
         image_id = str(self.but_functions.temp_img_id)
-        items = data['images'][image_id].get(item_type, {})
+        items = self.config_data_1['images'][image_id].get(item_type, {})
         return items
 
     def confirm_delete(self, window, item_type, item_vars):
@@ -769,7 +770,7 @@ class ConfigurationTool:
         - image_id (str): The ID of the image to clean up.
         """
         # Delete the image entry from config_data
-        del self.config_data['images'][image_id]       
+        del self.config_data_1['images'][image_id]       
         # Delete the physical image file
         self.delete_image_file()
         
@@ -782,10 +783,11 @@ class ConfigurationTool:
         self.image_selected = False
 
         ##save the change to the configuration file
-        save_config_data(self.config_data, self.mde_config_file_path)
+       # save_config_data(self.config_data, self.mde_config_file_path)
+        self.config.save_config_data()
         # Reinitialize the matcher and painter
        # self.but_functions.reload_config()
-        self.reload_config()
+        self.reset_matcher_and_painter()
 
     def delete_selected_items(self, item_type, item_ids):
         """
@@ -796,20 +798,21 @@ class ConfigurationTool:
         - item_ids (list): List of item IDs to delete.
         """
         image_id = str(self.but_functions.temp_img_id)
-        with self.but_functions.config_data_lock:
-            if image_id in self.config_data['images']:
-                for item_id in item_ids:
-                    if item_id in self.config_data['images'][image_id][item_type]:
-                        del self.config_data['images'][image_id][item_type][item_id]
-                        ## if the temlate image has no features more delete every thing related to it
-                        if self.config_data['images'][image_id]['features'] is None or not  self.config_data['images'][image_id]['features'] : 
-                             self.cleanup_image_deletion(image_id) # inside thhis functio the change in the configuration will also be saved
-                        else:    
-                            ##save the change to the configuration file
-                            save_config_data(self.config_data, self.mde_config_file_path)
-                                
-            else:
-                print(f"[DEBUG] Image ID {image_id} not found in config_data.")
+       # with self.but_functions.config_data_lock:
+        if image_id in self.config_data_1['images']:
+            for item_id in item_ids:
+                if item_id in self.config_data_1['images'][image_id][item_type]:
+                    del self.config_data_1['images'][image_id][item_type][item_id]
+                    ## if the temlate image has no features more delete every thing related to it
+                    if self.config_data_1['images'][image_id]['features'] is None or not  self.config_data_1['images'][image_id]['features'] : 
+                            self.cleanup_image_deletion(image_id) # inside thhis functio the change in the configuration will also be saved
+                    else:    
+                        ##save the change to the configuration file
+                        #save_config_data(self.config_data, self.mde_config_file_path)
+                        self.config.save_config_data()
+                            
+        else:
+            print(f"[DEBUG] Image ID {image_id} not found in config_data.")
 
     # ----------------------------------
     # Template Reset Management
@@ -851,8 +854,8 @@ class ConfigurationTool:
 
             # Reinitialize the matcher and painter
             #self.config_data= self.but_functions.reload_config()
-            self.reload_config()
-            print(f'<Debug> self.config_data: {self.config_data}')
+            self.reset_matcher_and_painter()
+            print(f'<Debug> self.config_data_1: {self.config_data_1}')
 
             messagebox.showinfo("Template Reset", "The template has been reset successfully.")
 
@@ -865,9 +868,9 @@ class ConfigurationTool:
             return
         # Toggle the state
         self.hide_parameters_and_features_toggle = not self.hide_parameters_and_features_toggle
-        print(f'<o o>'*30)
-        print(f"self.but_functions.temp_img_id:{self.but_functions.temp_img_id}, self.but_functions.painter.rect_history: ")
-        print(f'<o o>'*30)
+       # print(f'<o o>'*30)
+        #print(f"self.but_functions.temp_img_id:{self.but_functions.temp_img_id}, self.but_functions.painter.rect_history: ")
+        #print(f'<o o>'*30)
         # Check the state and update button properties
         if self.hide_parameters_and_features_toggle:
             self.hide_parameters_and_features_button.config(text="Display Boxes", bg="green")
@@ -890,10 +893,11 @@ class ConfigurationTool:
         """
         image_id = str(self.but_functions.temp_img_id)
         if image_id != '-1':
-            with self.but_functions.config_data_lock:
-                if image_id in self.config_data['images']:
-                    del self.config_data['images'][image_id]
-                    save_config_data(self.config_data, self.mde_config_file_path)
+           # with self.but_functions.config_data_lock:
+            if image_id in self.config_data_1['images']:
+                del self.config_data_1['images'][image_id]
+                # save_config_data(self.config_data, self.mde_config_file_path)
+                self.config.save_config_data()
         else:
             print("[DEBUG] Invalid temp_img_id (-1), no data to delete.")
 

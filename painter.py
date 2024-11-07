@@ -3,14 +3,16 @@
 import threading
 from tkinter import simpledialog, messagebox
 from helpers import get_temp_img_details
+from config_manager import ConfigData
 
 class Painter:
-    def __init__(self, canvas, config_data):
+    def __init__(self, canvas, mde_config_file_path):
         """
         Initializes the Painter class with the given canvas and configuration data.
         """
         self.canvas = canvas
-        self.config_data = config_data
+       # self.config_data = config_data
+        self.config_data_1 = ConfigData(mde_config_file_path).config_data
 
         # Drawing state variables
         self.drawing = False
@@ -377,7 +379,8 @@ class Painter:
         """
         # Draw rectangles for parameters
        # print(f"[Debug] draw_rectangles_around_parameters_and_screen_features called!")
-        parameters_dic, _, _, _, _ = get_temp_img_details(self.config_data, temp_img_id)
+        parameters_dic, _, _, _, _ = get_temp_img_details(self.config_data_1, temp_img_id)
+       
         self.draw_rectangles_around_parameters(
             parameters_dic,
             resize_percent_width,
@@ -389,7 +392,8 @@ class Painter:
         )
 
         # Draw rectangles for features
-        _, screen_features_dic, _, _, _ = get_temp_img_details(self.config_data, temp_img_id)
+        _, screen_features_dic, _, _, _ = get_temp_img_details(self.config_data_1, temp_img_id)
+
         self.draw_rectangles_around_screen_features(
             screen_features_dic,
             resize_percent_width,
@@ -428,4 +432,5 @@ class Painter:
             del self.last_rectangle[last_name]
 
         messagebox.showinfo("Success", "Last drawn rectangle has been removed.")
+
 

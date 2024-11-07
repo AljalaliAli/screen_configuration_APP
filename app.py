@@ -1,10 +1,10 @@
-from config_manager import ConfigManager
+from config_manager import AppConfigManager
 from ui_components import ConfigurationTool
 import sys
 
 def main():
     # Initialize configuration
-    config_manager = ConfigManager('config.ini')
+    config_manager = AppConfigManager('config.ini')
     
     # Extract paths and settings from the config
     config_files_dir = config_manager.get_config('Paths', 'configFiles_dir')
