@@ -62,8 +62,9 @@ class ButtonFunctions:
 
         # Painter-Klasse initialisieren
         self.painter = Painter(img_canvas, self.mde_config_file_path)
-   
-
+        
+        self.lock = threading.Lock()
+        
 
     def ensure_directories_and_config(self, config_dir, templates_dir, config_file):
         """
@@ -181,51 +182,50 @@ class ButtonFunctions:
         Adds a parameter to the image in a separate thread.
         """
         def add_parameter_thread():
-            print(f"[DEBUG] 'Add New Parameter' Button was clicked. self.temp_img_id = {self.temp_img_id}")
-            if not hasattr(self.config_tool, 'original_image') or self.config_tool.original_image is None:
-                print("[ERROR] No image loaded, cannot add parameter.")
-                self.config_tool.on_parameter_addition_complete()
-                return
+            with self.lock:  # Acquire lock to secure the critical section
+                print(f"[DEBUG] 'Add New Parameter' Button was clicked. self.temp_img_id = {self.temp_img_id}")
+                if not hasattr(self.config_tool, 'original_image') or self.config_tool.original_image is None:
+                    print("[ERROR] No image loaded, cannot add parameter.")
+                    self.config_tool.on_parameter_addition_complete()
+                    return
 
-            # Activate drawing mode with the specified color for parameters
-            self.painter.activate_drawing(
-                add_par_but_clicked=True,
-                resize_percent_width=resize_percent_width,
-                resize_percent_height=resize_percent_height,
-                box_color=box_color
-            )
+                # Activate drawing mode with the specified color for parameters
+                self.painter.activate_drawing(
+                    add_par_but_clicked=True,
+                    resize_percent_width=resize_percent_width,
+                    resize_percent_height=resize_percent_height,
+                    box_color=box_color
+                )
 
-            # Wait until drawing is complete or canceled
-            self.painter.drawing_complete_event.wait()
+                # Wait until drawing is complete or canceled
+                self.painter.drawing_complete_event.wait()
 
-            # Check if the operation was canceled
-            if self.painter.last_rectangle is None:
-                print("[INFO] Adding parameter was canceled.")
-                # Reset the button background color
-                self.config_tool.on_parameter_addition_complete()
-                return
+                # Check if drawing was canceled
+                if not self.painter.last_rectangle:
+                    print("[INFO] Drawing was canceled or no rectangle drawn.")
+                    self.painter.add_par_but_clicked = False  # Reset the flag
+                    self.config_tool.on_parameter_addition_complete()
+                    return
 
-            # Ensure there's at least one rectangle
-            if not self.painter.last_rectangle:
-                print("[INFO] No rectangle drawn.")
-                self.config_tool.on_parameter_addition_complete()
-                return
+                # Get the parameter name and position
+                par_name, par_pos = self.painter.last_rectangle.popitem()
 
-            # Get the parameter name and position
-            par_name, par_pos = self.painter.last_rectangle.popitem()
+                # Retrieve temp_img_id from config_tool
+                self.temp_img_id = self.config_tool.temp_img_id
 
-            # Retrieve temp_img_id from config_tool
-            self.temp_img_id = self.config_tool.temp_img_id
+                if self.temp_img_id is not None:
+                    self.add_parameter(self.temp_img_id, par_name, par_pos)
+                    print(f"[DEBUG] Parameter '{par_name}' added to template ID: {self.temp_img_id}")
+                else:
+                    print("[ERROR] No valid template ID found for adding parameter.")
 
-            if self.temp_img_id is not None:
-                self.add_parameter(self.temp_img_id, par_name, par_pos)
-                print(f"[DEBUG] Parameter '{par_name}' added to template ID: {self.temp_img_id}")
+                # Reset the flag here
+                self.painter.add_par_but_clicked = False
+
                 # Notify ConfigurationTool that parameter addition is complete
                 self.config_tool.on_parameter_addition_complete()
-            else:
-                print("[ERROR] No valid template ID found for adding parameter.")
-                self.config_tool.on_parameter_addition_complete()
 
+        # Start the thread to add the parameter
         thread = threading.Thread(target=add_parameter_thread)
         thread.start()
 
@@ -234,60 +234,53 @@ class ButtonFunctions:
         Adds a screen feature to the image in a separate thread.
         """
         def add_screen_feature_thread():
-            print("[DEBUG] 'Add Screen Feature' Button was clicked.")
-            if not self.img_path:
-                messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
+            with self.lock:  # Acquire lock to secure the critical section
+                print("[DEBUG] 'Add Screen Feature' Button was clicked.")
+                if not self.img_path:
+                    messagebox.showerror("Error", "Image path is not valid. Please select a valid image.")
+                    self.config_tool.on_screen_feature_addition_complete()
+                    return
+
+                # Activate drawing mode with the specific color for features
+                self.painter.activate_drawing(
+                    add_screen_feature_but_clicked=True,
+                    resize_percent_width=resize_percent_width,
+                    resize_percent_height=resize_percent_height,
+                    box_color=box_color
+                )
+
+                # Wait until drawing is complete or canceled
+                self.painter.drawing_complete_event.wait()
+
+                # Check if drawing was canceled
+                if not self.painter.last_rectangle:
+                    print("[INFO] Drawing was canceled or no rectangle drawn.")
+                    self.painter.add_screen_feature_but_clicked = False  # Reset the flag
+                    self.config_tool.on_screen_feature_addition_complete()
+                    return
+
+                # Get the feature name and position
+                feature_name, feature_pos = self.painter.last_rectangle.popitem()
+
+                if self.config_tool.temp_img_id is None or self.config_tool.temp_img_id == -1:
+                    # Add new template and get its ID
+                    self.config_tool.temp_img_id = self.add_template(self.img_path, img_size)
+
+                # Add feature to configuration
+                self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
+                print(f"[DEBUG] Feature '{feature_name}' added to template ID: {self.config_tool.temp_img_id}")
+
+                # Reset the flag here
+                self.painter.add_screen_feature_but_clicked = False
+
+                # Notify ConfigurationTool that screen feature addition is complete
                 self.config_tool.on_screen_feature_addition_complete()
-                return
 
-            # Activate drawing mode with the specific color for features
-            self.painter.activate_drawing(
-                add_screen_feature_but_clicked=True,
-                resize_percent_width=resize_percent_width,
-                resize_percent_height=resize_percent_height,
-                box_color=box_color
-            )
-
-            # Wait until drawing is complete or canceled
-            self.painter.drawing_complete_event.wait()
-
-            # Check if the operation was canceled
-            if self.painter.last_rectangle is None:
-                print("[INFO] Adding screen feature was canceled.")
-                # Reset the button background color
-                self.config_tool.on_screen_feature_addition_complete()
-                return
-
-            # Ensure there's at least one rectangle
-            if not self.painter.last_rectangle:
-                print("[INFO] No rectangle drawn.")
-                self.config_tool.on_screen_feature_addition_complete()
-                return
-
-            # Get the feature name and position
-            feature_name, feature_pos = self.painter.last_rectangle.popitem()
-
-            if self.config_tool.temp_img_id is None:
-                print("[ERROR] No valid template ID found for adding screen feature.")
-                self.config_tool.on_screen_feature_addition_complete()
-                return
-            elif self.config_tool.temp_img_id == -1:
-                # Add new template and get its ID
-                self.config_tool.temp_img_id = self.add_template(self.img_path, img_size)
-
-          #  print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_tool.config_data:{self.config_tool.config_data} ")
-            
-            self.add_feature_to_config(self.config_tool.temp_img_id, feature_name, feature_pos)
-
-            print(f"[DEBUG][add_screen_feature_thread] Adding feature to config ... self.config_tool.temp_img_id = {self.config_tool.temp_img_id}, feature_name = {feature_name}, feature_pos = {feature_pos}, self.config_data_1:{self.config_data_1} ")
-           # self.painter.config_data= self.config_data
-            print(f'self.config_data_1: {self.config_data_1}')
-            # Notify ConfigurationTool that screen feature addition is complete
-            self.config_tool.on_screen_feature_addition_complete()
-
+        # Start the thread to add the screen feature
         thread = threading.Thread(target=add_screen_feature_thread)
         thread.start()
-   
+
+
     def add_parameter(self, template_id, par_name, par_pos):   
         """
         Fügt einen Parameter zur config.json-Datei für die gegebene Vorlage hinzu.

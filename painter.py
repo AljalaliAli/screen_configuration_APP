@@ -63,6 +63,29 @@ class Painter:
         self.canvas.bind('<B1-Motion>', self.update_rectangle)
         self.canvas.bind('<ButtonRelease-1>', self.finish_drawing)
 
+    def cancel_drawing(self):
+        """
+        Cancels any ongoing drawing operation.
+        """
+        # Deactivate drawing mode
+        self.deactivate_drawing()
+
+        # Reset flags
+        self.add_par_but_clicked = False
+        self.add_screen_feature_but_clicked = False
+
+        # Clear any partial drawings
+        if self.rect:
+            self.canvas.delete(self.rect)
+            self.rect = None
+
+        # Clear last rectangle data
+        self.last_rectangle = {}
+
+        # Signal that drawing is complete
+        self.drawing_complete_event.set()
+
+
     def deactivate_drawing(self):
         """
         Deactivates drawing mode by removing event bindings.
@@ -92,14 +115,17 @@ class Painter:
         """
         if self.drawing and self.rect:
             self.canvas.coords(self.rect, self.start_x, self.start_y, event.x, event.y)
-
+  
     def finish_drawing(self, event):
         """
         Finalizes the drawing process when the mouse button is released.
         Prompts for a name and displays it next to the rectangle.
-
+        
         :param event: Tkinter event object
         """
+        if not self.drawing:
+            return  # No drawing in progress
+
         self.drawing = False
         end_x = event.x
         end_y = event.y
@@ -155,8 +181,11 @@ class Painter:
                 self.canvas.delete(self.rect)
             self.last_rectangle = {}  # Indicate cancellation
 
+        # Deactivate drawing and do not reset flags here
         self.deactivate_drawing()
-        self.drawing_complete_event.set()  # Signal that drawing is complete
+
+        # Signal that drawing is complete
+        self.drawing_complete_event.set()
 
     # Helper Functions
 

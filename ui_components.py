@@ -325,17 +325,7 @@ class ConfigurationTool:
         """
         self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
 
-    def activate_button(self, button_to_activate):
-        """
-        Activates the specified button by setting its background to green
-        and deactivates the other button by resetting its background to default.
-        """
-        # Reset both buttons to their default background colors
-        self.add_par_but.config(bg=self.add_par_but_default_bg)
-        self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
 
-        # Activate the clicked button by setting its background to green
-        button_to_activate.config(bg='green')
 
     # ----------------------------------
     # Image Handling
@@ -465,6 +455,18 @@ class ConfigurationTool:
     # ----------------------------------
     # Parameter and Screen Feature Management
     # ----------------------------------
+    def activate_button(self, button_to_activate):
+        # Reset both buttons to their default background colors
+        self.add_par_but.config(bg=self.add_par_but_default_bg)
+        self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
+
+        # Deactivate any ongoing drawing
+        self.but_functions.painter.cancel_drawing()
+
+        # Activate the clicked button by setting its background to green
+        button_to_activate.config(bg='green')
+
+
     def add_parameter(self):
         """
         Initiates the process to add a new parameter.
