@@ -116,6 +116,8 @@ class ButtonFunctions:
                 return None
 
             # Vergleich des ausgewählten Bildes mit den Vorlagen
+            print(f"[Debug browse_files]self.config_data_1:{self.config_data_1}")
+            
             match_result = self.matcher.match_images(img_cv2)
             self.temp_img_id = int(match_result[1])
 

@@ -73,6 +73,15 @@ class ImageMatcher:
                 img_resized = resize_image_cv2(img,temp_img_data["size"])
                 cropped_img = img_resized[y1:y2, x1:x2] 
                 cropped_temp = temp_img[y1:y2, x1:x2] 
+                # Display the image in a window
+                #cv2.imshow('cropped_img', cropped_img)
+                #cv2.imshow('cropped_temp', cropped_img)
+
+                # Wait for a key press indefinitely or for a given amount of time (milliseconds)
+                #cv2.waitKey(0)
+
+                # Destroy all OpenCV windows
+                #cv2.destroyAllWindows()
 
                 cropped_temp_gray =  convert_to_grayscale(cropped_temp)
                 imge_cropped_gray =  convert_to_grayscale(cropped_img)

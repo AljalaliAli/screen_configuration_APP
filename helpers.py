@@ -374,7 +374,9 @@ def get_temp_img_details(config_data, temp_img_id):
                 path = image_data["path"]
 
         else:
-            print(f"[WARNING] Image ID '{temp_img_id}' not found in the configuration.")
+            print(f"[WARNING get_temp_img_details] Image ID '{temp_img_id}' not found in the configuration.")
+            
+            #print(f"[Debug get_temp_img_details] json_data:{json_data}")
 
         return parameters, features, machine_status_conditions, size, path
 
@@ -421,6 +423,7 @@ def get_all_image_parameters(config_data):
             parameters = image_data.get("parameters", {})
             if not parameters:
                 print(f"[WARNING] Image ID '{image_id}' has no 'parameters' section.")
+
                 continue  # Skip images without 'parameters'
 
             for param_id, param_data in parameters.items():

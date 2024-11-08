@@ -57,7 +57,6 @@ class MachineStatusConditionsManager:
         """
         Opens the Machine Status Conditions Manager window and sets up the UI based on parameters.
 
-
         """
         #print(f'#'*60)
         #print(f"[Debug] define_machine_status called!")
@@ -770,6 +769,7 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
+        
 
     def submit_simple_status_conditions(self):
         """
@@ -800,7 +800,8 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-
+        
+        print(f"[Debug submit_status_conditions] self.config_data_1 : {self.config_data_1}")
     #################################################
     # === Utility Methods ===
     #################################################

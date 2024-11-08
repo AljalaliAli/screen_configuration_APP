@@ -408,6 +408,7 @@ class Painter:
         """
         # Draw rectangles for parameters
        # print(f"[Debug] draw_rectangles_around_parameters_and_screen_features called!")
+        #print(f"[Debug draw_rectangles_around_parameters_and_screen_features] self.config_data_1:{self.config_data_1}")
         parameters_dic, _, _, _, _ = get_temp_img_details(self.config_data_1, temp_img_id)
        
         self.draw_rectangles_around_parameters(

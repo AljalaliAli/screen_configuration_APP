@@ -335,8 +335,10 @@ class ConfigurationTool:
         Handles the selection and loading of an image to the canvas.
         """
         # Ensure that the configuration for the current image is complete before selecting a new image.
+        self.but_functions.reset_matcher_and_painter()
+        #print(f"[Debug select_image] self.config_data_1 :{self.config_data_1}")
         config_changed = self.config.has_config_changed() #has_config_changed(self.config_data, self.mde_config_file_path)
-        print(f'[Debug] config_changed: {config_changed}')
+        #print(f'[Debug select_image] config_changed: {config_changed}')
         if config_changed:
             if config_changed and not list_machine_status_conditions(self.config_data_1, self.but_functions.temp_img_id):
                 while True:
