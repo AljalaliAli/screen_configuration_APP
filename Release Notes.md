@@ -1,4 +1,12 @@
 # Release Notes
+## update v0.2.4
+1. Bug fixed by deleting the parameter and then adding a new parameter. The problem was with the created id for the new parameter
+2. Fixed bug where drawing names and positions were not saved when switching modes
+Issue: When switching between "Add Parameter" and "Add Screen Feature" modes, the names and positions of drawn rectangles were not being saved. This was due to the drawing mode flags (add_par_but_clicked and add_screen_feature_but_clicked) being reset prematurely in the finish_drawing method.
+## Update V0.1.4
+1. Added “Hide Boxes” button
+2. Bug fixed after resetting the template and then adding the screen feature (without closing and reopening the app) then Defined machine status.
+3. Some code debugging
 ## Update V0.0.4
 1. Added parameter suggestion button to suggest possible parameters.
 2. It is no longer allowed to add parameters with the same name to the same template.
