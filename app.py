@@ -3,6 +3,17 @@ import os
 import shutil
 import subprocess
 
+# --------------------- Determine if Module Should Be Downloaded ---------------------
+
+def should_download_module():
+    """Determine whether to download the module based on the running program's extension."""
+    script_name = os.path.basename(sys.argv[0])
+    script_ext = os.path.splitext(script_name)[1].lower()
+    if script_ext in ['.exe', '.bit'] or getattr(sys, 'frozen', False):
+        return False
+    else:
+        return True
+
 # --------------------- Download and Preload Module ---------------------
 
 def download_and_preload_module():
@@ -82,8 +93,11 @@ def download_and_preload_module():
             print(f"❌ Error importing '{module_name}': {e}")
             sys.exit(1)
 
-# Call the function before any other imports
-download_and_preload_module()
+# Call the function before any other imports if needed
+if should_download_module():
+    download_and_preload_module()
+else:
+    print("🔒 Running as an executable or bit file. Skipping module download.")
 
 # --------------------- Proceed with Other Imports ---------------------
 

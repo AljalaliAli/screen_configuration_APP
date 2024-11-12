@@ -1,4 +1,6 @@
 # Release Notes
+## update v0.2.5
+update the image the pattern detection module  
 ## update v0.2.4
 1. Bug fixed by deleting the parameter and then adding a new parameter. The problem was with the created id for the new parameter
 2. Fixed bug where drawing names and positions were not saved when switching modes

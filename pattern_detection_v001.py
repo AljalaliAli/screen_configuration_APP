@@ -138,8 +138,8 @@ class ImageMatcher:
         try:
             result = cv2.matchTemplate(filterd_cropped_img, filtered_cropped_template_img, cv2.TM_CCOEFF_NORMED)
             #print(f" result[0][0] = { result[0][0]}")
-            cv2.imwrite("filterd_cropped_img.jpg", filterd_cropped_img)
-            cv2.imwrite("filtered_cropped_template_img.jpg", filtered_cropped_template_img)
+           # cv2.imwrite("filterd_cropped_img.jpg", filterd_cropped_img)
+            #cv2.imwrite("filtered_cropped_template_img.jpg", filtered_cropped_template_img)
        
             _, match_val, _, _ = cv2.minMaxLoc(result)
             print(f"match_val={match_val}")
