@@ -7,7 +7,7 @@ import cv2
 import json
 from config_manager import ConfigData
 from painter import Painter
-from pattern_detection import ImageMatcher  # Import der ImageMatcher-Klasse
+from pattern_detection_v001 import ImageMatcher  # Import der ImageMatcher-Klasse
 from helpers import (
     add_item_to_template,
     get_next_available_id,
