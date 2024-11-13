@@ -72,8 +72,79 @@ class ImageMatcher:
             print(e)
             return {}
 
- 
     def match_images(self, img, min_match_val=0.9): 
+        """
+        Matches the input image against stored templates and identifies the best match.
+
+        Parameters:
+        - img (ndarray): The input image to be matched.
+        - min_match_val (float): Minimum similarity score required for a match.
+
+        Returns:
+        - tuple: (match_values, temp_img_id) if a match is found, (-1, -1) if no match.
+        """
+
+        # Loop through all image templates
+        for temp_img_id, temp_img_data in self.mde_config_data.get("images", {}).items():     
+            temp_img_path = os.path.join(self.templates_dir, temp_img_data["path"])   
+            match_values = []
+            features_count = 0
+            match_count = 0
+
+            # Loop through all features in the current template image
+            for merkma_id, feature in temp_img_data.get("features", {}).items(): 
+                features_count += 1
+                position = feature.get("position", {})
+                x1, x2 = int(position.get("x1", 0)), int(position.get("x2", 0))
+                y1, y2 = int(position.get("y1", 0)), int(position.get("y2", 0))
+
+                temp_img = cv2.imread(temp_img_path)
+                if temp_img is None:
+                    print(f"Failed to load template image: {temp_img_path}")
+                    continue  # Skip to next feature
+
+                # Resize the input image to match the template's size
+                img_resized = resize_image_cv2(img, temp_img_data.get("size", (0, 0)))
+                if img_resized is None:
+                    print("Failed to resize input image.")
+                    return -1, -1  # Exit if resizing fails
+
+                # Crop the resized input image and the template image based on feature position
+                cropped_img = img_resized[y1:y2, x1:x2] 
+                cropped_temp = temp_img[y1:y2, x1:x2] 
+
+                # Apply image preprocessing/filtering
+                filtered_cropped_template_img = mde_img_filter(cropped_temp)
+                filtered_cropped_img = mde_img_filter(cropped_img)
+                
+                # Check if cropping was successful
+                if filtered_cropped_img is None or filtered_cropped_template_img is None:
+                    print("Image filtering failed for one of the cropped images.")
+                    continue  # Skip to next feature
+
+                # Compute match value
+                match_val = self.compute_match_value(filtered_cropped_img, filtered_cropped_template_img)
+
+                if match_val is not None:
+                    match_values.append(match_val)
+                    if match_val >= min_match_val:
+                        match_count += 1
+                else:
+                    print(f"Skipping feature {merkma_id} due to matching issues.")
+
+            # Check if all features matched
+            if match_count == features_count and features_count > 0:
+                print('*********************************************')
+                print('Current match_values')
+                print(f" match_values = {match_values}    temp_img_id = {temp_img_id}")
+                print('*********************************************')
+                return match_values, temp_img_id
+
+        # If no templates matched
+        return -1, -1
+
+ 
+    '''    def match_images(self, img, min_match_val=0.9): 
         """
         Matches the input image against stored templates and identifies the best match.
 
@@ -107,7 +178,11 @@ class ImageMatcher:
 
                 filtered_cropped_template_img =  mde_img_filter(cropped_temp)
                 filterd_cropped_img =  mde_img_filter(cropped_img)
-    
+               # cv2.imshow('image_input  ', filtered_cropped_template_img)
+                #cv2.imshow('Cropped Image', cropped_img)
+                #cv2.waitKey(0)
+                #cv2.destroyAllWindows()
+                
                 match_val = self.compute_match_value(filterd_cropped_img, filtered_cropped_template_img)
                
                 match_values.append(match_val)
@@ -120,10 +195,10 @@ class ImageMatcher:
                 print('*********************************************')
                     
                 return  match_values,temp_img_id
-        return -1,-1
+        return -1,-1'''
    
     
-    def compute_match_value(self, filterd_cropped_img, filtered_cropped_template_img):
+    '''    def compute_match_value(self, filterd_cropped_img, filtered_cropped_template_img):
         """
         Computes the similarity score between a cropped section of the input image and a template.
 
@@ -152,6 +227,35 @@ class ImageMatcher:
         except Exception as e:
             print(f"Error: {e}")
             return None
+'''
+    def compute_match_value(self, filtered_cropped_img, filtered_cropped_template_img):
+        """
+        Computes the similarity score between a cropped section of the input image and a template.
+        """
+        try:
+            # Print shapes before matching for debugging
+          #  print(f"filtered_cropped_img shape: {filtered_cropped_img.shape}")
+           # print(f"filtered_cropped_template_img shape: {filtered_cropped_template_img.shape}")
+
+            # Check if source image is larger or equal to the template in both dimensions
+            if (filtered_cropped_img.shape[0] < filtered_cropped_template_img.shape[0] or
+                filtered_cropped_img.shape[1] < filtered_cropped_template_img.shape[1]):
+                print("Source image is smaller than the template image. Skipping this feature.")
+                return None  # Indicate that matching is not possible
+
+            # Perform template matching
+            result = cv2.matchTemplate(filtered_cropped_img, filtered_cropped_template_img, cv2.TM_CCOEFF_NORMED)
+            _, match_val, _, _ = cv2.minMaxLoc(result)
+            print(f"match_val={match_val}")
+            return match_val
+
+        except cv2.error as cv2_error:
+            print(f"OpenCV Error during template matching: {cv2_error}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error during template matching: {e}")
+            return None
+
 
 
 
