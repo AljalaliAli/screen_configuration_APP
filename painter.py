@@ -62,6 +62,8 @@ class Painter:
         self.canvas.bind('<Button-1>', self.start_drawing)
         self.canvas.bind('<B1-Motion>', self.update_rectangle)
         self.canvas.bind('<ButtonRelease-1>', self.finish_drawing)
+        # Change the cursor to arrow when drawing starts
+        self.canvas.config(cursor="arrow")
 
     def cancel_drawing(self):
         """
@@ -93,9 +95,10 @@ class Painter:
         self.canvas.unbind('<Button-1>')
         self.canvas.unbind('<B1-Motion>')
         self.canvas.unbind('<ButtonRelease-1>')
+        # Reset the cursor to the default arrow
+        self.canvas.config(cursor="arrow")
 
     # Drawing Event Methods
-
     def start_drawing(self, event):
         """
         Initializes the drawing process when the left mouse button is pressed.
@@ -186,10 +189,12 @@ class Painter:
 
         # Signal that drawing is complete
         self.drawing_complete_event.set()
-
+        # After finishing drawing, restore default cursor
+        self.canvas.config(cursor="arrow")
+        
     # Helper Functions
 
-    def create_rectangle(self, x1, y1, x2, y2, outline_color, fill_color=None, width=3):
+    def create_rectangle(self, x1, y1, x2, y2, outline_color, fill_color=None, width=1):
         """
         Creates a rectangle on the canvas.
 
