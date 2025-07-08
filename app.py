@@ -2,6 +2,10 @@ import sys
 import os
 import shutil
 import subprocess
+# --------------------- Proceed with Other Imports ---------------------
+
+from config_manager import AppConfigManager
+from ui_components import ConfigurationTool
 
 # --------------------- Determine if Module Should Be Downloaded ---------------------
 
@@ -99,10 +103,6 @@ if should_download_module():
 else:
     print("🔒 Running as an executable or bit file. Skipping module download.")
 
-# --------------------- Proceed with Other Imports ---------------------
-
-from config_manager import AppConfigManager
-from ui_components import ConfigurationTool
 
 # --------------------- Main Application Code ---------------------
 

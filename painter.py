@@ -238,15 +238,18 @@ class Painter:
 
     def assign_unique_tags(self, rect_id, text_id):
         """
-        Assigns a unique tag to both the rectangle and its associated text.
-
-        :param rect_id: Rectangle object ID
-        :param text_id: Text object ID
-        :return: Unique tag string
+        Append one shared, unique tag ('rect_<rect_id>') to both items,
+        while preserving any tags already present.
         """
         unique_tag = f"rect_{rect_id}"
-        self.canvas.itemconfig(rect_id, tags=(unique_tag,))
-        self.canvas.itemconfig(text_id, tags=(unique_tag,))
+
+        # keep previously assigned tags
+        rect_tags  = self.canvas.gettags(rect_id)
+        text_tags  = self.canvas.gettags(text_id)
+
+        self.canvas.itemconfig(rect_id, tags=rect_tags + (unique_tag,))
+        self.canvas.itemconfig(text_id, tags=text_tags + (unique_tag,))
+
         return unique_tag
 
     def store_rectangle_data(self, unique_tag, rect_id, name, x1, y1, x2, y2, is_parameter=False):
@@ -284,45 +287,56 @@ class Painter:
 
     # Drawing Methods
 
-    def create_rectangle_with_text(self, x1, y1, x2, y2, name, is_parameter=False,
-                                   outline_color="#00FF00", fill_color=None, text_color=None, bind_click=False,
-                                   click_handler=None):
+    def create_rectangle_with_text(
+        self,
+        x1, y1, x2, y2,
+        name,
+        is_parameter=False,
+        outline_color="#00FF00",
+        fill_color=None,
+        text_color=None,
+        bind_click=False,
+        click_handler=None,
+        font=("Arial", 12)
+    ):
         """
-        Draws a rectangle and adds associated text to the canvas.
-        Optionally binds a click event to change its color.
-
-        :param x1: X-coordinate of the top-left corner
-        :param y1: Y-coordinate of the top-left corner
-        :param x2: X-coordinate of the bottom-right corner
-        :param y2: Y-coordinate of the bottom-right corner
-        :param name: Text to display next to the rectangle
-        :param is_parameter: Boolean indicating if the rectangle is a parameter rectangle
-        :param outline_color: Color of the rectangle outline
-        :param fill_color: (Optional) Fill color of the rectangle
-        :param text_color: (Optional) Color of the text
-        :param bind_click: (Optional) If True, binds a click event to the rectangle and text
-        :param click_handler: (Optional) External click handler function
-        :return: Rectangle object ID
+        Draw a rectangle + label, attach the needed tags, and return the rect-id.
+        Now adds:
+            • tag 'all'               → included in zoom / pan
+            • tag 'rect_border'       → line-width auto-adjust while zooming
+            • unique tag 'rect_<id>'  → used for selection & deletion
         """
-        # Create the rectangle
-        rect_id = self.create_rectangle(x1, y1, x2, y2, outline_color, fill_color)
+        # 1) create items with the tags that already exist
+        rect_id = self.canvas.create_rectangle(
+            x1, y1, x2, y2,
+            outline=outline_color,
+            fill=fill_color if fill_color else "",
+            width=2,
+            tags=("overlay", "rect_border")       # NO unique_tag yet
+        )
 
-        # Create the text
-        text_id = self.create_text(x2 + 5, y1, name, fill=text_color if text_color else outline_color)
+        text_id = self.canvas.create_text(
+            x2 + 5, y1,
+            text=name,
+            anchor="w",
+            font=font,
+            fill=text_color or outline_color,
+            tags=("overlay",)                      # NO unique_tag yet
+        )
 
-        # Assign unique tags to both rectangle and text
+        # 2) generate / append the unique tag
         unique_tag = self.assign_unique_tags(rect_id, text_id)
 
-        # Store rectangle data if it is a parameter rectangle
-        self.store_rectangle_data(unique_tag, rect_id, name, x1, y1, x2, y2, is_parameter=is_parameter)
+        # 3) store data & bind events (unchanged logic)
+        self.store_rectangle_data(
+            unique_tag, rect_id, name, x1, y1, x2, y2, is_parameter=is_parameter
+        )
 
-        # Bind click event if required
-        self.bind_click_event(unique_tag, bind_click, click_handler)
+        if bind_click and click_handler:
+            self.canvas.tag_bind(unique_tag, "<Button-1>", click_handler)
 
-        # Track the order of rectangles
-       # self.rect_history.append(unique_tag)
-        self.rect_history.append((name, x1, y1, x2, y2))
-
+        # track creation order
+        self.rect_history.append(unique_tag)
 
         return rect_id
 

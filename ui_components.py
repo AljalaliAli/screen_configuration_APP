@@ -17,6 +17,7 @@ from helpers import (
 )
 from parameter_selection_dialog import open_parameter_selection_dialog
 from config_manager import ConfigData
+from zoom_pan_canvas import ZoomPanCanvas
 
 class ConfigurationTool:
     """
@@ -229,8 +230,7 @@ class ConfigurationTool:
         self.img_container.pack(side=LEFT, fill=BOTH, expand=1)
 
         # Create the Canvas to display the image
-        self.img_canvas = Canvas(self.img_container, bg='#4E4E6E',
-                                 cursor="cross")
+        self.img_canvas = ZoomPanCanvas( self.img_container, bg="#4E4E6E")
         self.img_canvas.pack(fill=BOTH, expand=1)
 
         # Create the Sidebar (right side)
@@ -410,16 +410,19 @@ class ConfigurationTool:
 
                 # Resize image to fit the canvas
                 resized_image = self.original_image.resize((canvas_width, canvas_height))
-                self.resized_img = ImageTk.PhotoImage(resized_image)
+               # self.resized_img = ImageTk.PhotoImage(resized_image)
 
                 # Set the image as the background of the canvas
-                self.img_canvas.create_image(0, 0, anchor=NW, image=self.resized_img, tags="bg")
-
+               # self.img_canvas.create_image(0, 0, anchor=NW, image=self.resized_img, tags="bg")
+                self.img_canvas.create_image(0, 0, anchor=NW,
+                              image=self.resized_img,
+                             tags=("all", "bg"))
                 # Ensure rectangles and other elements are drawn above the image
-                self.img_canvas.tag_lower("bg")  # This ensures the image is in the background
+                #self.img_canvas.tag_lower("bg")  # This ensures the image is in the background
 
                 # Keep a reference to avoid garbage collection
-                self.img_canvas.image = self.resized_img
+                #self.img_canvas.image = self.resized_img
+                self.img_canvas.show_pil_image(resized_image)
 
                 # Set the scroll region to match the image size and other canvas content
                 self.img_canvas.config(scrollregion=self.img_canvas.bbox("all"))
