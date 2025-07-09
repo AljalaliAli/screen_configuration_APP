@@ -106,9 +106,10 @@ class Painter:
         :param event: Tkinter event object
         """
         self.drawing = True
-        self.start_x = event.x
-        self.start_y = event.y
-        self.rect = self.create_rectangle(event.x, event.y, event.x, event.y, self.box_color)
+        # Convert screen event coords to canvas coords (account for zoom/pan)
+        self.start_x = self.canvas.canvasx(event.x)
+        self.start_y = self.canvas.canvasy(event.y)
+        self.rect = self.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, self.box_color)
 
     def update_rectangle(self, event):
         """
@@ -117,7 +118,10 @@ class Painter:
         :param event: Tkinter event object
         """
         if self.drawing and self.rect:
-            self.canvas.coords(self.rect, self.start_x, self.start_y, event.x, event.y)
+            # Convert screen event coords to canvas coords
+            cur_x = self.canvas.canvasx(event.x)
+            cur_y = self.canvas.canvasy(event.y)
+            self.canvas.coords(self.rect, self.start_x, self.start_y, cur_x, cur_y)
   
     def finish_drawing(self, event):
         """
@@ -130,15 +134,33 @@ class Painter:
             return  # No drawing in progress
 
         self.drawing = False
-        end_x = event.x
-        end_y = event.y
-        self.canvas.coords(self.rect, self.start_x, self.start_y, end_x, end_y)
+        # Capture world/display coordinates for rectangle
+        x1_world, y1_world = self.start_x, self.start_y
+        x2_world = self.canvas.canvasx(event.x)
+        y2_world = self.canvas.canvasy(event.y)
 
-        # Scale coordinates back to original image dimensions
-        original_start_x = self.start_x / self.resize_percent_width
-        original_start_y = self.start_y / self.resize_percent_height
-        original_end_x = end_x / self.resize_percent_width
-        original_end_y = end_y / self.resize_percent_height
+        # Update temporary rectangle on canvas using world coords
+        self.canvas.coords(self.rect, x1_world, y1_world, x2_world, y2_world)
+
+        # Get image anchor to convert world coords to image-local coords
+        img_item = self.canvas.img_on_canvas
+        anchor_x, anchor_y = self.canvas.coords(img_item)
+
+        # Convert world/display coords to local image coordinates
+        x1_local = x1_world - anchor_x
+        y1_local = y1_world - anchor_y
+        x2_local = x2_world - anchor_x
+        y2_local = y2_world - anchor_y
+
+        # Compute composite scale factor (initial static resize + dynamic zoom)
+        scale_total_x = self.resize_percent_width * self.canvas.scale_factor
+        scale_total_y = self.resize_percent_height * self.canvas.scale_factor
+
+        # Reverse transform local coords to original image pixel coordinates
+        original_start_x = min(x1_local, x2_local) / scale_total_x
+        original_start_y = min(y1_local, y2_local) / scale_total_y
+        original_end_x   = max(x1_local, x2_local) / scale_total_x
+        original_end_y   = max(y1_local, y2_local) / scale_total_y
 
         # Prompt for the name of the parameter or feature
         if self.add_par_but_clicked:
@@ -152,20 +174,20 @@ class Painter:
             is_parameter = False
 
         if name:
-            # Save the scaled (original image size) coordinates
+            # Save the original image pixel coordinates
             self.last_rectangle[name] = {
-                "x1": original_start_x,
-                "y1": original_start_y,
-                "x2": original_end_x,
-                "y2": original_end_y
+                "x1": original_start_x, "y1": original_start_y,
+                "x2": original_end_x,   "y2": original_end_y
             }
 
             # Create rectangle with text and bind click events if desired
+            # Create permanent rectangle on canvas using display coords
+            # Create permanent rectangle on canvas using display coords
             unique_tag = self.create_rectangle_with_text(
-                self.start_x,
-                self.start_y,
-                end_x,
-                end_y,
+                x1_world,
+                y1_world,
+                x2_world,
+                y2_world,
                 name,
                 is_parameter=is_parameter,
                 outline_color=self.box_color,
@@ -173,6 +195,14 @@ class Painter:
                 text_color=self.box_color,  # Text color matches the outline
                 bind_click=True       # Enable click reaction
             )
+            # Override stored parameter data with normalized original coordinates
+            if is_parameter and self.rect_history:
+                last_tag = self.rect_history[-1]
+                if last_tag in self.rect_data:
+                    self.rect_data[last_tag]['position'] = {
+                        "x1": original_start_x, "y1": original_start_y,
+                        "x2": original_end_x,   "y2": original_end_y
+                    }
 
             # Remove the temporary rectangle created during drawing
             if self.rect:
@@ -211,7 +241,8 @@ class Painter:
             x1, y1, x2, y2,
             outline=outline_color,
             fill=fill_color if fill_color else '',
-            width=width
+            width=width,
+            tags=("overlay", "rect_border")
         )
         return rect_id
 
