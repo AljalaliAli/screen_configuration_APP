@@ -18,6 +18,8 @@ from helpers import (
 from parameter_selection_dialog import open_parameter_selection_dialog
 from config_manager import ConfigData
 from zoom_pan_canvas import ZoomPanCanvas
+    
+from tkinter import Toplevel, StringVar, Radiobutton, Button, W, Canvas, Frame, Scrollbar, BOTH, RIGHT, LEFT, Y
 
 class ConfigurationTool:
     """
@@ -645,82 +647,87 @@ class ConfigurationTool:
             return
 
         self.open_delete_dialog()
-    
+ 
+ 
     def open_delete_dialog(self):
-        """
-        Opens a dialog window for deleting features or parameters.
-        """
-        # Create a new Toplevel window
         delete_window = Toplevel(self.root)
         delete_window.title("Delete Features/Parameters")
         delete_window.geometry("400x400")
+        delete_window.resizable(True, True)
 
-        # Create radio buttons to select between Features and Parameters
+        # ─── Fixed controls at the top ────────────────────────────────
         choice_var = StringVar(value="features")
-        features_radio = Radiobutton(delete_window, text="Features", variable=choice_var, value="features")
-        parameters_radio = Radiobutton(delete_window, text="Parameters", variable=choice_var, value="parameters")
-        features_radio.pack(anchor=W)
-        parameters_radio.pack(anchor=W)
+        Radiobutton(delete_window, text="Features",  variable=choice_var, value="features").pack(anchor=W, padx=5, pady=(5,0))
+        Radiobutton(delete_window, text="Parameters",variable=choice_var, value="parameters").pack(anchor=W, padx=5)
 
-        # Button to load the items
+        # We'll pass `scrollable_frame` into this callback so it only loads items there.
         load_button = Button(
             delete_window, text="Load Items",
-            command=lambda: self.load_items(delete_window, choice_var.get())
+            command=lambda: self.load_items(scrollable_frame, choice_var.get(), delete_window)
         )
         load_button.pack(pady=10)
 
-    def load_items(self, window, item_type):
-        """
-        Loads items (features or parameters) from the JSON configuration and displays them
-        with checkboxes in the provided window for selection.
+        # ─── Scrollable region setup ─────────────────────────────────
+        container = Frame(delete_window)
+        container.pack(fill=BOTH, expand=True, padx=5, pady=5)
 
-        Parameters:
-        - window: The Toplevel window where items are displayed.
-        - item_type (str): Type of items to load ('features' or 'parameters').
+        canvas = Canvas(container)
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
+
+        v_scroll = Scrollbar(container, orient="vertical", command=canvas.yview)
+        v_scroll.pack(side=RIGHT, fill=Y)
+        canvas.configure(yscrollcommand=v_scroll.set)
+
+        # This is the frame we'll populate with the items to delete.
+        scrollable_frame = Frame(canvas)
+        def on_frame_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        scrollable_frame.bind("<Configure>", on_frame_configure)
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        # Optional: mouse-wheel scrolling
+        canvas.bind("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+    def load_items(self, parent_frame, item_type, window):
         """
-        # Clear any existing widgets in the window
-        for widget in window.winfo_children():
+        Clears out parent_frame and then populates it
+        with a list of checkboxes for the given item_type.
+        """
+        # 1) Clear only the scrollable area
+        for widget in parent_frame.winfo_children():
             widget.destroy()
 
-        # Recreate the radio buttons
-        choice_var = StringVar(value=item_type)
-        features_radio = Radiobutton(window, text="Features", variable=choice_var, value="features")
-        parameters_radio = Radiobutton(window, text="Parameters", variable=choice_var, value="parameters")
-        features_radio.pack(anchor=W)
-        parameters_radio.pack(anchor=W)
-
-        # Button to load the items again if selection changes
-        load_button = Button(
-            window, text="Load Items",
-            command=lambda: self.load_items(window, choice_var.get())
-        )
-        load_button.pack(pady=10)
-
-        # Get the items from the JSON file
-        items = self.get_items(item_type)
+        # 2) Fetch your items
+        items = self.get_items(item_type)  # returns a dict or list
 
         if not items:
-            messagebox.showinfo("No Items", f"No {item_type.capitalize()} found in the selected image.")
-            window.destroy()
+            messagebox.showinfo(
+                "No Items",
+                f"No {item_type.capitalize()} found."
+            )
             return
 
-        # Display the items with checkboxes
-        Label(window, text=f"Select {item_type.capitalize()} to delete:").pack()
+        # 3) Heading
+        Label(parent_frame, text=f"Select {item_type.capitalize()} to delete:") \
+            .pack(anchor=W, pady=(0,5))
 
-        item_vars = {}
-        for item_id, item_info in items.items():
+        # 4) Build checkboxes
+        self.delete_vars = {}
+        for item_id, info in items.items():
             var = BooleanVar()
-            item_text = f"ID: {item_id}, Name: {item_info.get('name', 'N/A')}"
-            chk = Checkbutton(window, text=item_text, variable=var)
+            text = f"ID: {item_id}, Name: {info.get('name','N/A')}"
+            chk = Checkbutton(parent_frame, text=text, variable=var)
             chk.pack(anchor=W)
-            item_vars[item_id] = var
+            self.delete_vars[item_id] = var
 
-        # Button to delete selected items
-        delete_button = Button(
-            window, text="Delete Selected",
-            command=lambda: self.confirm_delete(window, item_type, item_vars)
+        # 5) Delete button
+            delete_btn = Button(
+        parent_frame,
+        text="Delete Selected",
+        command=lambda: self.confirm_delete(window, item_type, self.delete_vars)
         )
-        delete_button.pack(pady=10)
+        delete_btn.pack(pady=(10,0))
+
 
     def get_items(self, item_type):
         """
