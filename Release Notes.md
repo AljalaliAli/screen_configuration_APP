@@ -1,4 +1,6 @@
 # Release Notes
+## V0.2.8
+zoom in and out added
 ## update v0.2.5
 update the image the pattern detection module  
 ## update v0.2.4
