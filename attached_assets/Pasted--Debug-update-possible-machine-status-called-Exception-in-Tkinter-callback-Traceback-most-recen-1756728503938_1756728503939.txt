@@ -1,0 +1,64 @@
+[Debug] update_possible_machine_status called!
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 359, in <lambda>  
+    command=lambda: self.duplicate_condition(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'duplicate_condition'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\aljal\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "c:\Users\aljal\Desktop\MDE\Source_Codes\screen_configuration_APP\MachineStatusConditionsManager.py", line 352, in <lambda>  
+    command=lambda: self.insert_condition_after(group, condition),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MachineStatusConditionsManager' object has no attribute 'insert_condition_after'
