@@ -73,11 +73,11 @@ class MachineStatusConditionsManager:
         if self.but_functions.temp_img_id is None:
              messagebox.showwarning("No Image selected", "Please select an Image first.")
              return
-        
+
         elif self.but_functions.temp_img_id == -1:
              messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
              return
-        
+
         parameters, _, _, _, _ = get_temp_img_details(self.config_data_1, self.but_functions.temp_img_id)
 
         self.parameters = [item["name"] for item in parameters.values()]
@@ -99,7 +99,7 @@ class MachineStatusConditionsManager:
             self.setup_complex_ui()
         else:
             self.setup_simplified_ui()
-       
+
     def _apply_styles(self):
         """
         Applies consistent styling to the UI elements using ttk styles.
@@ -116,7 +116,7 @@ class MachineStatusConditionsManager:
             background=[("active", "#3498db")],
             foreground=[("active", "#ecf0f1")],
         )
-    
+
     #################################################
     # === UI Setup Methods ===
     #################################################
@@ -158,8 +158,8 @@ class MachineStatusConditionsManager:
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         if self.machine_statuses:
             machine_status_dropdown.current(0)
-            
-            
+
+
         submit_btn = ttk.Button(
             simplified_frame, text="Submit", command=self.submit_simple_status_conditions
         )
@@ -205,7 +205,7 @@ class MachineStatusConditionsManager:
         add_btn.pack(side="left", padx=5)
         submit_btn = ttk.Button(button_frame, text="Submit", command=submit_command)
         submit_btn.pack(side="left", padx=5)
-    
+
     #################################################
     # === UI Elements Creation Methods ===
     #################################################
@@ -283,6 +283,83 @@ class MachineStatusConditionsManager:
         comparison_operator_var = self._add_comparison_operator_dropdown(row_frame, comparison_operator)
         value_entry = self._add_value_entry(row_frame, value)
 
+        insert_after_btn = ttk.Button(
+            row_frame,
+            text="Insert After",
+            command=lambda: self.insert_condition_after(group, condition),
+        )
+        insert_after_btn.pack(side="left", padx=2)
+
+        duplicate_btn = ttk.Button(
+            row_frame,
+            text="Duplicate",
+            command=lambda: self.duplicate_condition(group, condition),
+        )
+        duplicate_btn.pack(side="left", padx=2)
+
+        remove_btn = ttk.Button(
+            row_frame,
+            text="Remove",
+            command=lambda: self.remove_condition_operand(group, condition),
+        )
+        remove_btn.pack(side="left", padx=5)
+
+        condition = {
+            "type": "condition",
+            "logic_operator_var": logic_operator_var,
+            "param_var": param_var,
+            "comparison_operator_var": comparison_operator_var,
+            "value_entry": value_entry,
+            "frame": row_frame,
+            "parent_group": group,
+        }
+        group["operands"].append(condition)
+        self.update_condition_display()
+
+    def add_condition_row(
+        self,
+        group,
+        param="",
+        comparison_operator="=",
+        value="",
+    ):
+        """
+        Adds a new condition row to a condition group.
+
+        Args:
+            group: The group to which the condition row will be added.
+            param: The parameter name.
+            comparison_operator: The comparison operator.
+            value: The value to compare against.
+        """
+        if not self.parameters:
+            messagebox.showerror(
+                "Configuration Error", "No parameters available. Please check the configuration."
+            )
+            return
+
+        row_frame = ttk.Frame(group["frame"])
+        row_frame.pack(fill="x", padx=10, pady=2)
+
+        logic_operator_var = self._add_logic_operator_if_needed(group, row_frame)
+        param_var = self._add_param_dropdown(row_frame, param)
+        comparison_operator_var = self._add_comparison_operator_dropdown(row_frame, comparison_operator)
+        value_entry = self._add_value_entry(row_frame, value)
+
+        insert_after_btn = ttk.Button(
+            row_frame,
+            text="Insert After",
+            command=lambda: self.insert_condition_after(group, condition),
+        )
+        insert_after_btn.pack(side="left", padx=2)
+
+        duplicate_btn = ttk.Button(
+            row_frame,
+            text="Duplicate",
+            command=lambda: self.duplicate_condition(group, condition),
+        )
+        duplicate_btn.pack(side="left", padx=2)
+
         remove_btn = ttk.Button(
             row_frame,
             text="Remove",
@@ -330,7 +407,7 @@ class MachineStatusConditionsManager:
             }
         )
         self.update_condition_display()
-   
+
     #################################################
     # === Helper Methods for UI Components ===
     #################################################
@@ -354,7 +431,7 @@ class MachineStatusConditionsManager:
             values=self.machine_statuses,
             state="readonly",
         )
- 
+
 
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         machine_status_dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
@@ -500,7 +577,7 @@ class MachineStatusConditionsManager:
         value_entry.pack(side="left", padx=5)
         value_entry.bind("<KeyRelease>", lambda event: self.update_condition_display())
         return value_entry
-    
+
     #################################################
     # === Data Population Methods ===
     #################################################
@@ -600,7 +677,7 @@ class MachineStatusConditionsManager:
                 "parent_group": group,
             }
         )
-    
+
     #################################################
     # === Deletion Methods ===
     #################################################
@@ -651,7 +728,7 @@ class MachineStatusConditionsManager:
                 self.remove_empty_parent_groups(parent_group)
             else:
                 self.condition_groups = [g for g in self.condition_groups if g != group]
-    
+
     #################################################
     # === Data Collection and Display Methods ===
     #################################################
@@ -729,7 +806,7 @@ class MachineStatusConditionsManager:
             conditions = self.collect_conditions(group)
             condition_text = self.generate_condition_text(conditions)
             group["condition_display_var"].set(condition_text)
-   
+
     #################################################
     # === Submission Methods ===
     #################################################
@@ -769,7 +846,7 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-        
+
 
     def submit_simple_status_conditions(self):
         """
@@ -783,12 +860,12 @@ class MachineStatusConditionsManager:
         self.machine_status_conditions = [{"status": selected_status}]
         if self.config_data_1:
             image_id = str(self.but_functions.temp_img_id)
-            
+
             # Check if temp_img_id is valid
             if image_id != '-1':
                 if image_id not in self.config_data_1["images"]:
                     self.config_data_1["images"][image_id] = {}
-                
+
                 self.config_data_1["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
                 if self.config.save_config_data():#save_config_data(self.config_data, self.mde_config_file_path):
                     self.is_machine_status_defined = True
@@ -800,7 +877,7 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-        
+
         print(f"[Debug submit_status_conditions] self.config_data_1 : {self.config_data_1}")
     #################################################
     # === Utility Methods ===
