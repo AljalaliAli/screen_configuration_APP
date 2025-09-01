@@ -283,27 +283,6 @@ class MachineStatusConditionsManager:
         comparison_operator_var = self._add_comparison_operator_dropdown(row_frame, comparison_operator)
         value_entry = self._add_value_entry(row_frame, value)
 
-        insert_after_btn = ttk.Button(
-            row_frame,
-            text="Insert After",
-            command=lambda: self.insert_condition_after(group, condition),
-        )
-        insert_after_btn.pack(side="left", padx=2)
-
-        duplicate_btn = ttk.Button(
-            row_frame,
-            text="Duplicate",
-            command=lambda: self.duplicate_condition(group, condition),
-        )
-        duplicate_btn.pack(side="left", padx=2)
-
-        remove_btn = ttk.Button(
-            row_frame,
-            text="Remove",
-            command=lambda: self.remove_condition_operand(group, condition),
-        )
-        remove_btn.pack(side="left", padx=5)
-
         condition = {
             "type": "condition",
             "logic_operator_var": logic_operator_var,
@@ -313,38 +292,6 @@ class MachineStatusConditionsManager:
             "frame": row_frame,
             "parent_group": group,
         }
-        group["operands"].append(condition)
-        self.update_condition_display()
-
-    def add_condition_row(
-        self,
-        group,
-        param="",
-        comparison_operator="=",
-        value="",
-    ):
-        """
-        Adds a new condition row to a condition group.
-
-        Args:
-            group: The group to which the condition row will be added.
-            param: The parameter name.
-            comparison_operator: The comparison operator.
-            value: The value to compare against.
-        """
-        if not self.parameters:
-            messagebox.showerror(
-                "Configuration Error", "No parameters available. Please check the configuration."
-            )
-            return
-
-        row_frame = ttk.Frame(group["frame"])
-        row_frame.pack(fill="x", padx=10, pady=2)
-
-        logic_operator_var = self._add_logic_operator_if_needed(group, row_frame)
-        param_var = self._add_param_dropdown(row_frame, param)
-        comparison_operator_var = self._add_comparison_operator_dropdown(row_frame, comparison_operator)
-        value_entry = self._add_value_entry(row_frame, value)
 
         insert_after_btn = ttk.Button(
             row_frame,
@@ -367,15 +314,6 @@ class MachineStatusConditionsManager:
         )
         remove_btn.pack(side="left", padx=5)
 
-        condition = {
-            "type": "condition",
-            "logic_operator_var": logic_operator_var,
-            "param_var": param_var,
-            "comparison_operator_var": comparison_operator_var,
-            "value_entry": value_entry,
-            "frame": row_frame,
-            "parent_group": group,
-        }
         group["operands"].append(condition)
         self.update_condition_display()
 
@@ -677,6 +615,60 @@ class MachineStatusConditionsManager:
                 "parent_group": group,
             }
         )
+
+    def insert_condition_after(self, group, condition):
+        """
+        Inserts a new condition after the specified condition in the group.
+
+        Args:
+            group: The group containing the condition.
+            condition: The condition after which to insert a new one.
+        """
+        # Find the index of the current condition
+        try:
+            condition_index = group["operands"].index(condition)
+        except ValueError:
+            messagebox.showerror("Error", "Condition not found in group.")
+            return
+
+        # Add a new condition row
+        self.add_condition_row(group)
+        
+        # Move the new condition to the correct position
+        if len(group["operands"]) > condition_index + 1:
+            new_condition = group["operands"].pop()  # Remove from end
+            group["operands"].insert(condition_index + 1, new_condition)  # Insert at correct position
+            
+        self.update_condition_display()
+
+    def duplicate_condition(self, group, condition):
+        """
+        Duplicates the specified condition in the group.
+
+        Args:
+            group: The group containing the condition.
+            condition: The condition to duplicate.
+        """
+        try:
+            condition_index = group["operands"].index(condition)
+        except ValueError:
+            messagebox.showerror("Error", "Condition not found in group.")
+            return
+
+        # Get the current values from the condition
+        param = condition["param_var"].get()
+        comparison_operator = condition["comparison_operator_var"].get()
+        value = condition["value_entry"].get()
+
+        # Add a new condition row with the same values
+        self.add_condition_row(group, param, comparison_operator, value)
+        
+        # Move the new condition to the position after the original
+        if len(group["operands"]) > condition_index + 1:
+            new_condition = group["operands"].pop()  # Remove from end
+            group["operands"].insert(condition_index + 1, new_condition)  # Insert at correct position
+            
+        self.update_condition_display()
 
     #################################################
     # === Deletion Methods ===
