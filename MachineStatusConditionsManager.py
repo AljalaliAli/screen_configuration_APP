@@ -117,6 +117,28 @@ class MachineStatusConditionsManager:
             foreground=[("active", "#ecf0f1")],
         )
 
+    def insert_condition_after(self, group, condition):
+        """
+        Insert a new condition after the specified condition in the group.
+        """
+        try:
+            # Implementation for inserting condition after another condition
+            messagebox.showinfo("Insert Condition", f"Inserting condition after {condition} in {group}")
+            # Add your logic here to insert the condition
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to insert condition: {e}")
+
+    def duplicate_condition(self, group, condition):
+        """
+        Duplicate the specified condition in the group.
+        """
+        try:
+            # Implementation for duplicating a condition
+            messagebox.showinfo("Duplicate Condition", f"Duplicating condition {condition} in {group}")
+            # Add your logic here to duplicate the condition
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to duplicate condition: {e}")
+
     #################################################
     # === UI Setup Methods ===
     #################################################
