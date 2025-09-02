@@ -54,8 +54,8 @@ class ConfigurationTool:
         self.parametrs_suggestions_but_toggle = False
         # Initialize the root window
         self.root = Tk()
-        self.root.title('Configuration Tool')
-        self.root.resizable(False, False)  # Disable window resizing
+        self.root.title('Machine Configuration Tool - MDE System')
+        self.root.resizable(True, True)  # Allow window resizing for better usability
 
         # Get the screen dimensions
         screen_width = self.root.winfo_screenwidth()
@@ -64,8 +64,17 @@ class ConfigurationTool:
         # Set the main window geometry to fit the screen, minus the taskbar
         self.root.geometry(f"{int(screen_width - (screen_width * 0.05))}x{int(screen_height - (screen_height * 0.10))}")
 
+        # Set minimum window size
+        self.root.minsize(800, 600)
+
         # Bind the on_closing method to the window close event
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        # Add keyboard shortcuts
+        self.root.bind('<Control-o>', lambda e: self.select_image())
+        self.root.bind('<Control-s>', lambda e: self.config.save_config_data() if hasattr(self, 'config') else None)
+        self.root.bind('<F1>', lambda e: self.show_help())
+        self.root.bind('<Escape>', lambda e: self.but_functions.painter.cancel_drawing() if hasattr(self, 'but_functions') else None)
 
         self.sidebar_width = 200  # Fixed sidebar width
 
@@ -132,6 +141,51 @@ class ConfigurationTool:
         self.add_sidebar_widgets()
 
         self.hide_parameters_and_features_toggle=False
+
+    def show_help(self):
+        """
+        Shows help dialog with keyboard shortcuts and workflow instructions.
+        """
+        help_text = """
+MACHINE CONFIGURATION TOOL - HELP
+
+WORKFLOW:
+1. Select Image (Ctrl+O) - Choose an image file to configure
+2. Add Screen Features - Define areas of interest on the image
+3. Add Parameters - Add measurable parameters to the features
+4. Define Machine Status - Set up machine status conditions
+
+KEYBOARD SHORTCUTS:
+• Ctrl+O: Select Image
+• Ctrl+S: Save Configuration  
+• F1: Show this help
+• Esc: Cancel current drawing operation
+
+DRAWING:
+• Click and drag to draw rectangles
+• Green boxes = Parameters
+• Red boxes = Screen Features
+• Right-click for context menu options
+
+TIPS:
+• Follow the step-by-step workflow in the sidebar
+• Check the status bar for current progress
+• Use the tools section for managing existing items
+        """
+        
+        help_window = Toplevel(self.root)
+        help_window.title("Help - Configuration Tool")
+        help_window.geometry("500x400")
+        help_window.configure(bg='#2c3e50')
+        
+        help_label = Label(help_window, text=help_text, 
+                          bg='#2c3e50', fg='#ecf0f1', font=('Courier', 10),
+                          justify=LEFT, anchor=NW)
+        help_label.pack(padx=20, pady=20, fill=BOTH, expand=True)
+        
+        close_btn = Button(help_window, text="Close", command=help_window.destroy,
+                          bg='#3498db', fg='white', font=('Arial', 10, 'bold'))
+        close_btn.pack(pady=10)
 
     def reset_matcher_and_painter(self):
         """
@@ -219,6 +273,29 @@ class ConfigurationTool:
         - screen_width (int): Width of the screen.
         - screen_height (int): Height of the screen.
         """
+        # Add title bar
+        title_frame = Frame(self.root, bg='#1c2833', height=40)
+        title_frame.pack(fill=X)
+        title_frame.pack_propagate(False)
+        
+        title_label = Label(title_frame, text="Machine Configuration Tool", 
+                           bg='#1c2833', fg='#ecf0f1', font=('Arial', 16, 'bold'))
+        title_label.pack(pady=10)
+
+        # Add status bar
+        self.status_frame = Frame(self.root, bg='#34495e', height=30)
+        self.status_frame.pack(fill=X)
+        self.status_frame.pack_propagate(False)
+        
+        self.status_label = Label(self.status_frame, text="Ready - Please select an image to begin", 
+                                 bg='#34495e', fg='#ecf0f1', font=('Arial', 10))
+        self.status_label.pack(side=LEFT, padx=10, pady=5)
+
+        # Progress indicator
+        self.progress_label = Label(self.status_frame, text="Step 1/4", 
+                                   bg='#34495e', fg='#f39c12', font=('Arial', 10, 'bold'))
+        self.progress_label.pack(side=RIGHT, padx=10, pady=5)
+
         # Main container that holds both the image and the sidebar
         self.main_container = Frame(self.root)
         self.main_container.pack(fill=BOTH, expand=1)
@@ -231,88 +308,119 @@ class ConfigurationTool:
         )
         self.img_container.pack(side=LEFT, fill=BOTH, expand=1)
 
+        # Add instructions overlay
+        self.instruction_label = Label(self.img_container, 
+                                      text="Select an image from the sidebar to get started",
+                                      bg='#4E4E6E', fg='#ecf0f1', font=('Arial', 14))
+        self.instruction_label.place(relx=0.5, rely=0.5, anchor='center')
+
         # Create the Canvas to display the image
-        self.img_canvas = ZoomPanCanvas( self.img_container, bg="#4E4E6E")
+        self.img_canvas = ZoomPanCanvas(self.img_container, bg="#4E4E6E")
         self.img_canvas.pack(fill=BOTH, expand=1)
 
         # Create the Sidebar (right side)
         self.side_bar = Frame(self.main_container, width=self.sidebar_width,
-                              bg='#000')
+                              bg='#1c2833')
         self.side_bar.pack(side=RIGHT, fill=Y)
 
     def add_sidebar_widgets(self):
         """
-        Adds widgets (buttons and dropdowns) to the sidebar.
+        Adds widgets (buttons and dropdowns) to the sidebar with improved organization.
         """
 
         # Create padding options for widgets in the sidebar
         pad_options = {'padx': 10, 'pady': 5}
 
-        # Button to select an image
-        select_img_but = Button(self.side_bar, text="Select Image", command=self.select_image)
+        # === STEP 1: IMAGE SELECTION ===
+        step1_frame = Frame(self.side_bar, bg='#2c3e50', relief=RAISED, bd=1)
+        step1_frame.pack(fill=X, padx=5, pady=5)
+        
+        step1_label = Label(step1_frame, text="STEP 1: Select Image", 
+                           bg='#34495e', fg='#ecf0f1', font=('Arial', 10, 'bold'))
+        step1_label.pack(fill=X, padx=5, pady=2)
+        
+        select_img_but = Button(step1_frame, text="📁 Select Image", command=self.select_image,
+                               bg='#3498db', fg='white', font=('Arial', 9, 'bold'))
         select_img_but.pack(fill=X, **pad_options)
 
-        # Button to add screen feature
-        self.add_screen_feature_but = Button(self.side_bar, text="Add Screen Feature", command=self.add_screen_feature)
+        # === STEP 2: ADD FEATURES ===
+        step2_frame = Frame(self.side_bar, bg='#2c3e50', relief=RAISED, bd=1)
+        step2_frame.pack(fill=X, padx=5, pady=5)
+        
+        step2_label = Label(step2_frame, text="STEP 2: Add Features", 
+                           bg='#34495e', fg='#ecf0f1', font=('Arial', 10, 'bold'))
+        step2_label.pack(fill=X, padx=5, pady=2)
+
+        self.add_screen_feature_but = Button(step2_frame, text="🎯 Add Screen Feature", 
+                                           command=self.add_screen_feature,
+                                           bg='#e74c3c', fg='white', font=('Arial', 9, 'bold'))
         self.add_screen_feature_but.pack(fill=X, **pad_options)
         self.add_screen_feature_but_default_bg = self.add_screen_feature_but.cget('bg')
 
-        # Button to add a new parameter
-        self.add_par_but = Button(self.side_bar, text="Add New Parameter", command=self.add_parameter)
+        # === STEP 3: ADD PARAMETERS ===
+        step3_frame = Frame(self.side_bar, bg='#2c3e50', relief=RAISED, bd=1)
+        step3_frame.pack(fill=X, padx=5, pady=5)
+        
+        step3_label = Label(step3_frame, text="STEP 3: Add Parameters", 
+                           bg='#34495e', fg='#ecf0f1', font=('Arial', 10, 'bold'))
+        step3_label.pack(fill=X, padx=5, pady=2)
+
+        self.add_par_but = Button(step3_frame, text="🔧 Add New Parameter", command=self.add_parameter,
+                                 bg='#27ae60', fg='white', font=('Arial', 9, 'bold'))
         self.add_par_but.pack(fill=X, **pad_options)
         self.add_par_but_default_bg = self.add_par_but.cget('bg')
 
-        # Separator
-        separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
-        separator.pack(fill=X, padx=5, pady=10)
-
-        # Button to clear the canvas
-      #  clear_canvas_but = Button(self.side_bar, text="Clear Canvas", command=self.clear_canvas)
-       # clear_canvas_but.pack(fill=X, **pad_options)
-
-        # Button to delete features or parameters
-        self.delete_items_but = Button(self.side_bar, text="Delete Features/Parameters", command=self.delete_items)
-        self.delete_items_but.pack(fill=X, **pad_options)
-
-        # Reset Button
-        self.reset_but = Button(self.side_bar, text="Reset Template", command=self.reset_template)
-        self.reset_but.pack(fill=X, **pad_options)
-
-        # Separator
-        separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
-        separator.pack(fill=X, padx=5, pady=10)
-
-        # Parameter Suggestions Button
-        self.param_suggestions_but = Button(self.side_bar, text="Parameter Suggestions", command=self.parametrs_suggestions_but)
+        self.param_suggestions_but = Button(step3_frame, text="💡 Parameter Suggestions", 
+                                          command=self.parametrs_suggestions_but,
+                                          bg='#f39c12', fg='white', font=('Arial', 9, 'bold'))
         self.param_suggestions_but.pack(fill=X, **pad_options)
 
-        # Create the button
-        self.hide_parameters_and_features_button = Button(self.side_bar, text="Hide Boxes", 
-                                                          command=self.hide_parameters_and_features_but_fun)
-        self.hide_parameters_and_features_button.pack(fill=X, **pad_options)
-        # Separator
-        separator = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
-        separator.pack(fill=X, padx=5, pady=10)
+        # === TOOLS SECTION ===
+        tools_frame = Frame(self.side_bar, bg='#2c3e50', relief=RAISED, bd=1)
+        tools_frame.pack(fill=X, padx=5, pady=5)
+        
+        tools_label = Label(tools_frame, text="TOOLS", 
+                           bg='#34495e', fg='#ecf0f1', font=('Arial', 10, 'bold'))
+        tools_label.pack(fill=X, padx=5, pady=2)
 
-        # Define machine status
+        self.hide_parameters_and_features_button = Button(tools_frame, text="👁️ Hide/Show Boxes", 
+                                                          command=self.hide_parameters_and_features_but_fun,
+                                                          bg='#9b59b6', fg='white', font=('Arial', 9, 'bold'))
+        self.hide_parameters_and_features_button.pack(fill=X, **pad_options)
+
+        self.delete_items_but = Button(tools_frame, text="🗑️ Delete Items", command=self.delete_items,
+                                      bg='#e67e22', fg='white', font=('Arial', 9, 'bold'))
+        self.delete_items_but.pack(fill=X, **pad_options)
+
+        self.reset_but = Button(tools_frame, text="🔄 Reset Template", command=self.reset_template,
+                               bg='#c0392b', fg='white', font=('Arial', 9, 'bold'))
+        self.reset_but.pack(fill=X, **pad_options)
+
+        # === MACHINE STATUS SECTION ===
+        status_frame = Frame(self.side_bar, bg='#2c3e50', relief=RAISED, bd=1)
+        status_frame.pack(fill=X, padx=5, pady=5)
+        
+        status_label = Label(status_frame, text="MACHINE STATUS", 
+                            bg='#34495e', fg='#ecf0f1', font=('Arial', 10, 'bold'))
+        status_label.pack(fill=X, padx=5, pady=2)
+
         self.define_machine_status = Button(
-            self.side_bar, text="Define Machine Status",
-            command=lambda: self.machine_status_conditions_manager.define_machine_status()
+            status_frame, text="⚙️ Define Machine Status",
+            command=lambda: self.machine_status_conditions_manager.define_machine_status(),
+            bg='#16a085', fg='white', font=('Arial', 9, 'bold')
         )
         self.define_machine_status.pack(fill=X, **pad_options)
 
-        # Separator for machine status labels
-        separator_status = Frame(self.side_bar, height=2, bd=1, relief=SUNKEN)
-        separator_status.pack(fill=X, padx=5, pady=10)
-
         # Label for the possible machine status list (Initially hidden)
-        self.dropdown_label = Label(self.side_bar, text="Possible Machine Status", bg='#000', fg='white')
-        self.dropdown_label.pack(fill=X, padx=5, pady=10)
+        self.dropdown_label = Label(status_frame, text="Current Machine Status", 
+                                   bg='#34495e', fg='#ecf0f1', font=('Arial', 9, 'bold'))
+        self.dropdown_label.pack(fill=X, padx=5, pady=5)
         self.dropdown_label.pack_forget()  # Hide initially
 
         # Create a Listbox to display the machine status options
-        self.status_listbox = Listbox(self.side_bar, height=5)
-        self.status_listbox.pack(fill=X, padx=5, pady=10)
+        self.status_listbox = Listbox(status_frame, height=5, bg='#ecf0f1', fg='#2c3e50',
+                                     font=('Arial', 9), selectbackground='#3498db')
+        self.status_listbox.pack(fill=X, padx=5, pady=5)
         self.status_listbox.pack_forget()  # Hide initially
 
     def on_parameter_addition_complete(self):
@@ -326,6 +434,28 @@ class ConfigurationTool:
         Resets the 'Add Screen Feature' button background color after screen feature addition is complete or canceled.
         """
         self.add_screen_feature_but.config(bg=self.add_screen_feature_but_default_bg)
+        self.update_status("Screen feature added successfully", "Step 3/4")
+
+    def update_status(self, message, progress=""):
+        """
+        Updates the status bar with current operation status.
+        """
+        self.status_label.config(text=message)
+        if progress:
+            self.progress_label.config(text=progress)
+
+    def update_progress_based_on_state(self):
+        """
+        Updates progress indicator based on current application state.
+        """
+        if not self.image_selected:
+            self.update_status("Ready - Please select an image to begin", "Step 1/4")
+        elif self.but_functions.temp_img_id == -1:
+            self.update_status("Image selected - Add screen features", "Step 2/4")
+        elif not self.parameters:
+            self.update_status("Features added - Add parameters", "Step 3/4")
+        else:
+            self.update_status("Configuration complete - Define machine status", "Step 4/4")
 
 
 
@@ -396,11 +526,18 @@ class ConfigurationTool:
         Parameters:
         - self.image_data (tuple): A tuple containing the image path and image ID.
         """
+        # Hide instruction overlay when image is loaded
+        if hasattr(self, 'instruction_label'):
+            self.instruction_label.place_forget()
+            
         # Before loading the image, clear the canvas to ensure there are no rectangles or images
         self.clear_canvas()
         if self.image_data:
             selected_img_path, img_id = self.image_data
             try:
+                # Update status
+                self.update_status("Loading image...", "Step 2/4")
+                
                 # Open the image using PIL
                 self.original_image = Image.open(selected_img_path)
                 original_width, original_height = self.original_image.size  # Store original image size
@@ -412,18 +549,12 @@ class ConfigurationTool:
 
                 # Resize image to fit the canvas
                 resized_image = self.original_image.resize((canvas_width, canvas_height))
-               # self.resized_img = ImageTk.PhotoImage(resized_image)
 
                 # Set the image as the background of the canvas
-               # self.img_canvas.create_image(0, 0, anchor=NW, image=self.resized_img, tags="bg")
                 self.img_canvas.create_image(0, 0, anchor=NW,
                               image=self.resized_img,
                              tags=("all", "bg"))
-                # Ensure rectangles and other elements are drawn above the image
-                #self.img_canvas.tag_lower("bg")  # This ensures the image is in the background
 
-                # Keep a reference to avoid garbage collection
-                #self.img_canvas.image = self.resized_img
                 self.img_canvas.show_pil_image(resized_image)
 
                 # Set the scroll region to match the image size and other canvas content
@@ -432,6 +563,7 @@ class ConfigurationTool:
                 # Calculate the scaling factors based on the image resize
                 self.resize_percent_width = canvas_width / original_width
                 self.resize_percent_height = canvas_height / original_height
+                
                 if draw_parameters_and_features:
                     # Draw parameters (green) and features (red) with scaling
                     self.but_functions.draw_parameters_and_features(
@@ -441,9 +573,13 @@ class ConfigurationTool:
                         feature_color="#ff0000"
                     )
 
+                # Update status based on current state
+                self.update_progress_based_on_state()
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to display image: {e}")
                 print(f"[ERROR] Exception occurred while loading image: {e}")
+                self.update_status("Error loading image", "Error")
 
     def clear_canvas(self):
         """
@@ -479,14 +615,20 @@ class ConfigurationTool:
         Initiates the process to add a new parameter.
         Activates the 'Add New Parameter' button.
         """
-        # Activate the 'Add New Parameter' button
+        # Validate prerequisites with better messages
         if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("Warning", "Select an image first then add screen feature then Parameter")
+            messagebox.showwarning("Step Required", 
+                                 "Please follow the workflow:\n1. Select an image first\n2. Add screen features\n3. Then add parameters")
+            self.update_status("Please select an image first", "Step 1/4")
             return
         if self.but_functions.temp_img_id == -1:
-            messagebox.showwarning("Warning", "Add a screen feature first")
+            messagebox.showwarning("Step Required", 
+                                 "Please add a screen feature before adding parameters.\n\nScreen features define the areas of interest on your image.")
+            self.update_status("Add screen features first", "Step 2/4")
             return
+            
         self.activate_button(self.add_par_but)
+        self.update_status("Draw a rectangle around the parameter area", "Step 3/4")
 
         # Start the parameter addition process
         self.but_functions.add_parameter_threaded(
@@ -501,10 +643,14 @@ class ConfigurationTool:
         Activates the 'Add Screen Feature' button.
         """
         if self.but_functions.temp_img_id is None:
-            messagebox.showwarning("Warning", "Select an image first ")
+            messagebox.showwarning("Step Required", 
+                                 "Please select an image first.\n\nUse the 'Select Image' button to choose an image file.")
+            self.update_status("Please select an image first", "Step 1/4")
             return
+            
         # Activate the 'Add Screen Feature' button
         self.activate_button(self.add_screen_feature_but)
+        self.update_status("Draw a rectangle around the screen feature area", "Step 2/4")
 
         # Start the screen feature addition process
         self.but_functions.add_screen_feature_threaded(

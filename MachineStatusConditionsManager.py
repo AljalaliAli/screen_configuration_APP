@@ -73,11 +73,11 @@ class MachineStatusConditionsManager:
         if self.but_functions.temp_img_id is None:
              messagebox.showwarning("No Image selected", "Please select an Image first.")
              return
-        
+
         elif self.but_functions.temp_img_id == -1:
              messagebox.showwarning("No Screen Features", "Please add a screen feature first.")
              return
-        
+
         parameters, _, _, _, _ = get_temp_img_details(self.config_data_1, self.but_functions.temp_img_id)
 
         self.parameters = [item["name"] for item in parameters.values()]
@@ -99,7 +99,7 @@ class MachineStatusConditionsManager:
             self.setup_complex_ui()
         else:
             self.setup_simplified_ui()
-       
+
     def _apply_styles(self):
         """
         Applies consistent styling to the UI elements using ttk styles.
@@ -116,7 +116,29 @@ class MachineStatusConditionsManager:
             background=[("active", "#3498db")],
             foreground=[("active", "#ecf0f1")],
         )
-    
+
+    def insert_condition_after(self, group, condition):
+        """
+        Insert a new condition after the specified condition in the group.
+        """
+        try:
+            # Implementation for inserting condition after another condition
+            messagebox.showinfo("Insert Condition", f"Inserting condition after {condition} in {group}")
+            # Add your logic here to insert the condition
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to insert condition: {e}")
+
+    def duplicate_condition(self, group, condition):
+        """
+        Duplicate the specified condition in the group.
+        """
+        try:
+            # Implementation for duplicating a condition
+            messagebox.showinfo("Duplicate Condition", f"Duplicating condition {condition} in {group}")
+            # Add your logic here to duplicate the condition
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to duplicate condition: {e}")
+
     #################################################
     # === UI Setup Methods ===
     #################################################
@@ -158,8 +180,8 @@ class MachineStatusConditionsManager:
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         if self.machine_statuses:
             machine_status_dropdown.current(0)
-            
-            
+
+
         submit_btn = ttk.Button(
             simplified_frame, text="Submit", command=self.submit_simple_status_conditions
         )
@@ -205,7 +227,7 @@ class MachineStatusConditionsManager:
         add_btn.pack(side="left", padx=5)
         submit_btn = ttk.Button(button_frame, text="Submit", command=submit_command)
         submit_btn.pack(side="left", padx=5)
-    
+
     #################################################
     # === UI Elements Creation Methods ===
     #################################################
@@ -283,13 +305,6 @@ class MachineStatusConditionsManager:
         comparison_operator_var = self._add_comparison_operator_dropdown(row_frame, comparison_operator)
         value_entry = self._add_value_entry(row_frame, value)
 
-        remove_btn = ttk.Button(
-            row_frame,
-            text="Remove",
-            command=lambda: self.remove_condition_operand(group, condition),
-        )
-        remove_btn.pack(side="left", padx=5)
-
         condition = {
             "type": "condition",
             "logic_operator_var": logic_operator_var,
@@ -299,6 +314,28 @@ class MachineStatusConditionsManager:
             "frame": row_frame,
             "parent_group": group,
         }
+
+        insert_after_btn = ttk.Button(
+            row_frame,
+            text="Insert After",
+            command=lambda: self.insert_condition_after(group, condition),
+        )
+        insert_after_btn.pack(side="left", padx=2)
+
+        duplicate_btn = ttk.Button(
+            row_frame,
+            text="Duplicate",
+            command=lambda: self.duplicate_condition(group, condition),
+        )
+        duplicate_btn.pack(side="left", padx=2)
+
+        remove_btn = ttk.Button(
+            row_frame,
+            text="Remove",
+            command=lambda: self.remove_condition_operand(group, condition),
+        )
+        remove_btn.pack(side="left", padx=5)
+
         group["operands"].append(condition)
         self.update_condition_display()
 
@@ -330,7 +367,7 @@ class MachineStatusConditionsManager:
             }
         )
         self.update_condition_display()
-   
+
     #################################################
     # === Helper Methods for UI Components ===
     #################################################
@@ -354,7 +391,7 @@ class MachineStatusConditionsManager:
             values=self.machine_statuses,
             state="readonly",
         )
- 
+
 
         machine_status_dropdown.pack(fill="x", padx=5, pady=5)
         machine_status_dropdown.bind("<<ComboboxSelected>>", self.on_option_select)
@@ -500,7 +537,7 @@ class MachineStatusConditionsManager:
         value_entry.pack(side="left", padx=5)
         value_entry.bind("<KeyRelease>", lambda event: self.update_condition_display())
         return value_entry
-    
+
     #################################################
     # === Data Population Methods ===
     #################################################
@@ -600,7 +637,61 @@ class MachineStatusConditionsManager:
                 "parent_group": group,
             }
         )
-    
+
+    def insert_condition_after(self, group, condition):
+        """
+        Inserts a new condition after the specified condition in the group.
+
+        Args:
+            group: The group containing the condition.
+            condition: The condition after which to insert a new one.
+        """
+        # Find the index of the current condition
+        try:
+            condition_index = group["operands"].index(condition)
+        except ValueError:
+            messagebox.showerror("Error", "Condition not found in group.")
+            return
+
+        # Add a new condition row
+        self.add_condition_row(group)
+        
+        # Move the new condition to the correct position
+        if len(group["operands"]) > condition_index + 1:
+            new_condition = group["operands"].pop()  # Remove from end
+            group["operands"].insert(condition_index + 1, new_condition)  # Insert at correct position
+            
+        self.update_condition_display()
+
+    def duplicate_condition(self, group, condition):
+        """
+        Duplicates the specified condition in the group.
+
+        Args:
+            group: The group containing the condition.
+            condition: The condition to duplicate.
+        """
+        try:
+            condition_index = group["operands"].index(condition)
+        except ValueError:
+            messagebox.showerror("Error", "Condition not found in group.")
+            return
+
+        # Get the current values from the condition
+        param = condition["param_var"].get()
+        comparison_operator = condition["comparison_operator_var"].get()
+        value = condition["value_entry"].get()
+
+        # Add a new condition row with the same values
+        self.add_condition_row(group, param, comparison_operator, value)
+        
+        # Move the new condition to the position after the original
+        if len(group["operands"]) > condition_index + 1:
+            new_condition = group["operands"].pop()  # Remove from end
+            group["operands"].insert(condition_index + 1, new_condition)  # Insert at correct position
+            
+        self.update_condition_display()
+
     #################################################
     # === Deletion Methods ===
     #################################################
@@ -651,7 +742,7 @@ class MachineStatusConditionsManager:
                 self.remove_empty_parent_groups(parent_group)
             else:
                 self.condition_groups = [g for g in self.condition_groups if g != group]
-    
+
     #################################################
     # === Data Collection and Display Methods ===
     #################################################
@@ -729,7 +820,7 @@ class MachineStatusConditionsManager:
             conditions = self.collect_conditions(group)
             condition_text = self.generate_condition_text(conditions)
             group["condition_display_var"].set(condition_text)
-   
+
     #################################################
     # === Submission Methods ===
     #################################################
@@ -769,7 +860,7 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-        
+
 
     def submit_simple_status_conditions(self):
         """
@@ -783,12 +874,12 @@ class MachineStatusConditionsManager:
         self.machine_status_conditions = [{"status": selected_status}]
         if self.config_data_1:
             image_id = str(self.but_functions.temp_img_id)
-            
+
             # Check if temp_img_id is valid
             if image_id != '-1':
                 if image_id not in self.config_data_1["images"]:
                     self.config_data_1["images"][image_id] = {}
-                
+
                 self.config_data_1["images"][image_id]["machine_status_conditions"] = self.machine_status_conditions
                 if self.config.save_config_data():#save_config_data(self.config_data, self.mde_config_file_path):
                     self.is_machine_status_defined = True
@@ -800,7 +891,7 @@ class MachineStatusConditionsManager:
             self.on_submit_callback()
 
         self.status_conditions_manager_window.destroy()
-        
+
         print(f"[Debug submit_status_conditions] self.config_data_1 : {self.config_data_1}")
     #################################################
     # === Utility Methods ===
